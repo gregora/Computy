@@ -1,0 +1,99 @@
+### KiCAD files
+
+PCB/Computy-backups/
+PCB/gerber_to_order/
+
+PCB/*.zip
+
+# Temporary files
+*.000
+*.bak
+*.bck
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*.kicad_prl
+*.sch-bak
+*~
+_autosave-*
+*.tmp
+*-save.pro
+*-save.kicad_pcb
+fp-info-cache
+/build
+
+*.step
+
+# Netlist files (exported from Eeschema)
+*.net
+
+# Autorouter files (exported from Pcbnew)
+*.dsn
+*.ses
+
+# Footprint association file (exported from Pcbnew)
+*.cmp
+
+# Exported BOM files
+*.xml
+*.csv
+*.tsv
+
+# Misc
+*.log
+*.raw
+.svg2shenzhen-cache
+
+### CubeIDE files
+
+#settings
+.settings/
+
+#metadata
+.metadata/
+
+#Debug
+Debug/
+debug/
+Release/
+release
+
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+*.bin
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
