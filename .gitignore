@@ -5,6 +5,8 @@ PCB/gerber_to_order/
 
 PCB/*.zip
 
+*.lck
+
 # Temporary files
 *.000
 *.bak
