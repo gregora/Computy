@@ -51,7 +51,7 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-char rx_buff_gps[200];
+char rx_buff_gps[83]; // NMEA messages are at most 82 chars long
 char rx_char_gps;
 int rx_i_gps = 0;
 
@@ -590,12 +590,19 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}else if(huart->Instance == UART4){
 		// Handle GPS RX
 		if(rx_char_gps == '$'){
-			rx_buff_gps[rx_i_gps + 1] = '\0';
+			rx_buff_gps[rx_i_gps + 1] = '\r';
+			rx_buff_gps[rx_i_gps + 2] = '\n';
+			rx_buff_gps[rx_i_gps + 3] = '\0';
+
 			rx_i_gps = 0;
 			nmea_parse(&gps, rx_buff_gps);
+
+			for (int i = 0; i < 83; i++){
+				rx_buff_gps[i] = '\0';
+			}
 		}
 
-		if(rx_i_gps == 200){
+		if(rx_i_gps == 83){
 			rx_i_gps = 0;
 		}
 

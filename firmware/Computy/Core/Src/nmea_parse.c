@@ -174,13 +174,13 @@ void nmea_parse(GPS *gps_data, uint8_t *buffer){
     }
     for(int i = 0; i<cnt; i++){
        if(strstr(data[i], "\r\n")!=NULL && gps_checksum(data[i])){
-           if(strstr(data[i], "GPGLL")!=NULL){
+           if(strstr(data[i], "GPGLL")!=NULL || strstr(data[i], "GNGLL") != NULL){
                nmea_GPGLL(gps_data, data[i]);
            }
-           else if(strstr(data[i], "GPGSA")!=NULL){
+           else if(strstr(data[i], "GPGSA")!=NULL || strstr(data[i], "GNGSA") != NULL){
                nmea_GPGSA(gps_data, data[i]);
            }
-           else if(strstr(data[i], "GPGGA")!=NULL){
+           else if(strstr(data[i], "GPGGA")!=NULL || strstr(data[i], "GNGGA") != NULL){
                nmea_GPGGA(gps_data, data[i]);
            }
        }
