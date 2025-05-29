@@ -17,6 +17,7 @@ An STM32 based flight computer
 Board specifictions:
 - **50mm x 100mm** board size
 - Four **M3** mounting holes
+- **25Mhz** external oscilator
 
 KiCAD files can be found in `/PCB` directory.
 
@@ -29,5 +30,5 @@ MCU is programmed with CubeIDE. Full project is located in `firmware/Computy`.
 
 ### Dependencies
 
-- [stm32-nmea-gps-hal](https://github.com/sztvka/stm32-nmea-gps-hal) (modified and included)
+- **[stm32-nmea-gps-hal](https://github.com/sztvka/stm32-nmea-gps-hal)** (**modified** and **included**)
 
