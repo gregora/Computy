@@ -196,6 +196,11 @@ int main(void)
   HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
   HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
 
+  double latitude = 0;
+  double longitude = 0;
+
+  int count = 0;
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -211,6 +216,24 @@ int main(void)
     TIM3->CCR2 = rx_buff_ibus[6];
 
     uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
+
+
+     if (gps.fix == 1){
+
+        if (latitude != gps.latitude && longitude != gps.longitude){
+        	count += 1;
+
+    		latitude = gps.latitude;
+    		longitude = gps.longitude;
+
+        }
+
+
+     }
+
+	float fixps = ((float) count) * 1000 / ms;
+
+
 
 
   }
