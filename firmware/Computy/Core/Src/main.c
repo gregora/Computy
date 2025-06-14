@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "nmea_parse.h"
+#include "bno055.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -156,7 +157,7 @@ int main(void)
   uint32_t error = HAL_I2C_GetError(&hi2c2);
 
   if (error == HAL_I2C_ERROR_NONE) {
-    return;
+
   } else if (error == HAL_I2C_ERROR_BERR) {
     printf("HAL_I2C_ERROR_BERR\r\n");
   } else if (error == HAL_I2C_ERROR_ARLO) {
@@ -171,26 +172,21 @@ int main(void)
     printf("HAL_I2C_ERROR_TIMEOUT\r\n");
   }
 
+
   if (ret == HAL_OK) {
-
-
-
-
-      if (buffer == 0xA0) {
-          // Success
-      } else {
-          // Unexpected chip ID
-      }
-  } else {
-      // I2C communication failed
-	    if (HAL_I2C_GetError(&hi2c2) == HAL_I2C_ERROR_AF) {
-	        // NACK received
-	    	int nack = 1;
-
-	    } else {
-	        // Some other error (bus error, etc.)
-	    }
   }
+
+  bno055_t bno = {
+      i2c: &hi2c2,
+	  addr: 0x28,
+	  mode: BNO_MODE_IMU
+  };
+
+  // Initialize the sensor
+  bno055_init(&bno);
+
+  bno055_vec3_t gyroscope;
+  bno055_vec3_t accelerometer;
 
 
   HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
@@ -207,6 +203,15 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+	// Read Gyroscope data on all axis
+	bno055_gyro(&bno, &gyroscope);
+
+	// Read Accelerometer data on all axis
+	bno055_acc(&bno, &accelerometer);
+
+	//printf ("SWO test!\r\n");
+
+
     TIM8->CCR1 = rx_buff_ibus[1];
     TIM8->CCR2 = rx_buff_ibus[2];
     TIM8->CCR3 = rx_buff_ibus[3];
@@ -216,7 +221,6 @@ int main(void)
     TIM3->CCR2 = rx_buff_ibus[6];
 
     uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
-
 
      if (gps.fix == 1){
 
@@ -257,6 +261,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
+
     Error_Handler();
   }
 
@@ -271,7 +276,8 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
-    Error_Handler();
+
+	  Error_Handler();
   }
 }
 
@@ -687,6 +693,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
 
 	}
+}
+
+
+int __io_putchar(int ch)
+{
+ // Write character to ITM ch.0
+ ITM_SendChar(ch);
+ return(ch);
 }
 
 /* USER CODE END 4 */
