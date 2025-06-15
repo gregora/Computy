@@ -212,3 +212,35 @@ void BNO055_QuaternionToEuler(const BNO055_Quaternion_t *quat, BNO055_Euler_t *e
     float cosy_cosp = 1.0f - 2.0f * (quat->y * quat->y + quat->z * quat->z);
     euler->yaw = atan2f(siny_cosp, cosy_cosp);
 }
+
+
+/**
+  * @brief  Read angular velocity (gyroscope) data from BNO055
+  * @param  hdev: Pointer to BNO055 handle structure
+  * @param  angular_velocity: Pointer to angular velocity structure to store data
+  * @retval HAL status
+  * @note   Angular velocity is in radians per second
+  */
+HAL_StatusTypeDef BNO055_ReadAngularVelocity(BNO055_Handle_t *hdev, BNO055_AngularVelocity_t *angular_velocity)
+{
+    uint8_t data[6];
+    int16_t raw_x, raw_y, raw_z;
+
+    if(hdev == NULL || angular_velocity == NULL || !hdev->initialized)
+        return HAL_ERROR;
+
+    /* Read 6 bytes of angular velocity data (x, y, z) */
+    if(BNO055_ReadRegister(hdev, BNO055_GYRO_DATA_X_LSB_ADDR, data, 6) != HAL_OK)
+        return HAL_ERROR;
+
+    /* Convert raw data to rad/s (1 rad/s = 16 LSB) */
+    raw_x = (int16_t)((data[1] << 8) | data[0]);
+    raw_y = (int16_t)((data[3] << 8) | data[2]);
+    raw_z = (int16_t)((data[5] << 8) | data[4]);
+
+    angular_velocity->x = (float)raw_x / 16.0f;
+    angular_velocity->y = (float)raw_y / 16.0f;
+    angular_velocity->z = (float)raw_z / 16.0f;
+
+    return HAL_OK;
+}

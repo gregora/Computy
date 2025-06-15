@@ -139,7 +139,7 @@ int main(void)
   BNO055_Quaternion_t quat;
   BNO055_LinearAccel_t accel;
   BNO055_Euler_t euler;
-
+  BNO055_AngularVelocity_t ang_vel;
 
   // Initialize BNO055
   HAL_StatusTypeDef ret;
@@ -207,6 +207,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+
 	if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
 	{
 	   // Use quaternion data (quat.w, quat.x, quat.y, quat.z)
@@ -219,6 +221,10 @@ int main(void)
     }
 
     BNO055_QuaternionToEuler(&quat, &euler);
+
+    if(BNO055_ReadAngularVelocity(&bno055, &ang_vel) == HAL_OK) {
+
+    }
 
     TIM8->CCR1 = rx_buff_ibus[1];
     TIM8->CCR2 = rx_buff_ibus[2];

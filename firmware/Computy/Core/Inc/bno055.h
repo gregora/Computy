@@ -25,6 +25,7 @@
 #define BNO055_AXIS_MAP_SIGN_ADDR       0x42
 #define BNO055_QUATERNION_DATA_W_LSB_ADDR 0x20
 #define BNO055_LINEAR_ACCEL_DATA_X_LSB_ADDR 0x28
+#define BNO055_GYRO_DATA_X_LSB_ADDR 0x14
 
 /* Operation modes */
 #define BNO055_OPERATION_MODE_CONFIG    0x00
@@ -58,6 +59,12 @@ typedef struct {
     float yaw;      // Rotation around Z axis (radians)
 } BNO055_Euler_t;
 
+/* Angular velocity structure */
+typedef struct {
+    float x;  // Angular velocity around X axis (rad/s)
+    float y;  // Angular velocity around Y axis (rad/s)
+    float z;  // Angular velocity around Z axis (rad/s)
+} BNO055_AngularVelocity_t;
 
 /* BNO055 handle structure */
 typedef struct {
@@ -73,5 +80,6 @@ HAL_StatusTypeDef BNO055_ReadLinearAccel(BNO055_Handle_t *hdev, BNO055_LinearAcc
 HAL_StatusTypeDef BNO055_Reset(BNO055_Handle_t *hdev);
 HAL_StatusTypeDef BNO055_SetOperationMode(BNO055_Handle_t *hdev, uint8_t mode);
 void BNO055_QuaternionToEuler(const BNO055_Quaternion_t *quat, BNO055_Euler_t *euler);
+HAL_StatusTypeDef BNO055_ReadAngularVelocity(BNO055_Handle_t *hdev, BNO055_AngularVelocity_t *angular_velocity);
 
 #endif /* BNO055_H */
