@@ -150,14 +150,15 @@ int main(void)
       // Handle error
   }
 
+  uint8_t buffer;
+  uint32_t error;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
 
-  uint8_t buffer;
-  uint32_t error;
 
   //extern I2C_HandleTypeDef hi2c2;
 
@@ -206,18 +207,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
-	  {
-		  // Use quaternion data (quat.w, quat.x, quat.y, quat.z)
-	  }
+	if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
+	{
+	   // Use quaternion data (quat.w, quat.x, quat.y, quat.z)
+	}
 
-      // Read linear acceleration
-      if(BNO055_ReadLinearAccel(&bno055, &accel) == HAL_OK)
-      {
-          // Use acceleration data (accel.x, accel.y, accel.z in m/s^2)
-      }
+    // Read linear acceleration
+    if(BNO055_ReadLinearAccel(&bno055, &accel) == HAL_OK)
+    {
+        // Use acceleration data (accel.x, accel.y, accel.z in m/s^2)
+    }
 
-      BNO055_QuaternionToEuler(&quat, &euler);
+    BNO055_QuaternionToEuler(&quat, &euler);
 
     TIM8->CCR1 = rx_buff_ibus[1];
     TIM8->CCR2 = rx_buff_ibus[2];
