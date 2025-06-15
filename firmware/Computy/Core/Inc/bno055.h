@@ -54,8 +54,8 @@ typedef struct {
 
 /* Euler angles structure */
 typedef struct {
-    float pitch;    // Rotation around X axis (radians)
-    float roll;     // Rotation around Y axis (radians)
+    float pitch;    // Rotation around Y axis (radians)
+    float roll;     // Rotation around X axis (radians)
     float yaw;      // Rotation around Z axis (radians)
 } BNO055_Euler_t;
 
