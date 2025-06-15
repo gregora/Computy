@@ -18,11 +18,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include "bno055.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "nmea_parse.h"
-#include "bno055.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -134,6 +133,23 @@ int main(void)
   TIM3->CCR2 = 2000;
 
   HAL_TIM_Base_Start(&htim2);  // Start TIM2 in polling mode
+
+
+  BNO055_Handle_t bno055;
+  BNO055_Quaternion_t quat;
+  BNO055_LinearAccel_t accel;
+  BNO055_Euler_t euler;
+
+
+  // Initialize BNO055
+  HAL_StatusTypeDef ret;
+  ret = BNO055_Init(&bno055, &hi2c2, BNO055_I2C_ADDR1);
+
+  if(ret != HAL_OK)
+  {
+      // Handle error
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -141,11 +157,11 @@ int main(void)
 
 
   uint8_t buffer;
-
-  HAL_StatusTypeDef ret;
+  uint32_t error;
 
   //extern I2C_HandleTypeDef hi2c2;
 
+  /*
   ret = HAL_I2C_Mem_Read(&hi2c2,
 		  	  	  	  	 (0x28 << 1),
                          0x01,
@@ -154,7 +170,10 @@ int main(void)
                          1,
                          1000);
 
-  uint32_t error = HAL_I2C_GetError(&hi2c2);
+
+  error = HAL_I2C_GetError(&hi2c2);
+ */
+
 
   if (error == HAL_I2C_ERROR_NONE) {
 
@@ -173,21 +192,6 @@ int main(void)
   }
 
 
-  if (ret == HAL_OK) {
-  }
-
-  bno055_t bno = {
-      i2c: &hi2c2,
-	  addr: 0x28,
-	  mode: BNO_MODE_IMU
-  };
-
-  // Initialize the sensor
-  bno055_init(&bno);
-
-  bno055_vec3_t gyroscope;
-  bno055_vec3_t accelerometer;
-
 
   HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
   HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
@@ -202,15 +206,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
+	  {
+		  // Use quaternion data (quat.w, quat.x, quat.y, quat.z)
+	  }
 
-	// Read Gyroscope data on all axis
-	bno055_gyro(&bno, &gyroscope);
+      // Read linear acceleration
+      if(BNO055_ReadLinearAccel(&bno055, &accel) == HAL_OK)
+      {
+          // Use acceleration data (accel.x, accel.y, accel.z in m/s^2)
+      }
 
-	// Read Accelerometer data on all axis
-	bno055_acc(&bno, &accelerometer);
-
-	//printf ("SWO test!\r\n");
-
+      BNO055_QuaternionToEuler(&quat, &euler);
 
     TIM8->CCR1 = rx_buff_ibus[1];
     TIM8->CCR2 = rx_buff_ibus[2];
@@ -236,8 +243,6 @@ int main(void)
      }
 
 	float fixps = ((float) count) * 1000 / ms;
-
-
 
 
   }
