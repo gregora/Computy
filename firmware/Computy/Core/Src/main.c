@@ -154,6 +154,17 @@ int main(void)
   uint8_t buffer;
   uint32_t error;
 
+
+  cc1101_init();
+
+  // Test burst read
+  cc1101_write_reg(0x0C, 0x12);  // Write to FSCTRL1
+  uint8_t val = cc1101_read_reg(0x0C);  // Should return 0x12
+
+  int succ = cc1101_test_spi();
+
+  test_tx_functionality();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -350,7 +361,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -649,7 +660,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PB6 */
   GPIO_InitStruct.Pin = GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
