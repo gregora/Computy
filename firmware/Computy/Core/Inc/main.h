@@ -62,6 +62,40 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN Private defines */
 
+struct Packet{
+  uint16_t time;
+
+  // orientation quaternions
+  float q1;
+  float q2;
+  float q3;
+  float q4;
+
+  float ax;
+  float ay;
+  float az;
+
+  float latitude;
+  float longitude;
+  int16_t altitude; // gps altitude in meters
+  uint8_t satellites; // number of satellites
+
+  int16_t channels[7];
+
+
+  /*
+  MODES:
+  0 - manual
+  1 - take-off
+  2 - fly-by-wire
+
+  255 - recovery
+  */
+  uint8_t mode;
+
+};
+
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

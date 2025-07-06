@@ -1,192 +1,291 @@
-#include "cc1101.h"
-#include "stm32f2xx_hal.h"  // Or your specific HAL
+/*
+ * cc1101.c
+ *
+ *  Created on: Mar 11, 2020
+ *      Author: suleyman.eskil but the library has Mr. Ilynx
+ *      https://www.freelancer.com/u/ilynx?ref_project_id=24212020
+ */
 
-// SPI handle (must be initialized elsewhere)
-extern SPI_HandleTypeDef hspi1;
+#include"cc1101.h"
 
-// Chip Select pin configuration (PB6)
-#define CC1101_CS_PORT   GPIOB
-#define CC1101_CS_PIN    GPIO_PIN_6
+SPI_HandleTypeDef* hal_spi;
+UART_HandleTypeDef* hal_uart;
 
-// Helper macros for CS line
-#define CC1101_CS_LOW()  HAL_GPIO_WritePin(CC1101_CS_PORT, CC1101_CS_PIN, GPIO_PIN_RESET)
-#define CC1101_CS_HIGH() HAL_GPIO_WritePin(CC1101_CS_PORT, CC1101_CS_PIN, GPIO_PIN_SET)
+uint16_t CS_Pin;
+GPIO_TypeDef* CS_GPIO_Port;
 
-#define CC1101_STX  0x35  // Transmit command (from datasheet)
+#define WRITE_BURST             0x40
+#define READ_SINGLE             0x80
+#define READ_BURST              0xC0
 
-void cc1101_init(void) {
-    // Initialize only the CS pin (PB6)
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = CC1101_CS_PIN;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(CC1101_CS_PORT, &GPIO_InitStruct);
-    
-    CC1101_CS_HIGH();
-    cc1101_reset();
 
-    // Basic I/O and FIFO Configuration
-    cc1101_write_reg(0x00, 0x29);  // IOCFG2 - GDO2 Output Pin Configuration
-    cc1101_write_reg(0x01, 0x2E);  // IOCFG1 - GDO1 Output Pin Configuration
-    cc1101_write_reg(0x02, 0x06);  // IOCFG0 - GDO0 Output Pin Configuration
-    cc1101_write_reg(0x03, 0x47);  // FIFOTHR - RX/TX FIFO Thresholds
+#define BYTES_IN_RXFIFO         0x7F
+#define LQI                     1
+#define CRC_OK                  0x80
 
-    // Sync Word and Packet Configuration
-    cc1101_write_reg(0x04, 0xD3);  // SYNC1 - Sync Word High Byte
-    cc1101_write_reg(0x05, 0x91);  // SYNC0 - Sync Word Low Byte
-    cc1101_write_reg(0x06, 0xFF);  // PKTLEN - Packet Length
-    cc1101_write_reg(0x07, 0x04);  // PKTCTRL1 - Packet Automation Control
-    cc1101_write_reg(0x08, 0x05);  // PKTCTRL0 - Packet Automation Control
-    cc1101_write_reg(0x09, 0x00);  // ADDR - Device Address
 
-    // Frequency and Modem Configuration
-    cc1101_write_reg(0x0D, 0x10);  // FREQ2 - Frequency Control Word High
-    cc1101_write_reg(0x0E, 0xB4);  // FREQ1 - Frequency Control Word Mid
-    cc1101_write_reg(0x0F, 0x2E);  // FREQ0 - Frequency Control Word Low
-    cc1101_write_reg(0x10, 0xCA);  // MDMCFG4 - Modem Configuration
-    cc1101_write_reg(0x11, 0x83);  // MDMCFG3 - Modem Configuration
-    cc1101_write_reg(0x12, 0x93);  // MDMCFG2 - Modem Configuration
-    cc1101_write_reg(0x13, 0x22);  // MDMCFG1 - Modem Configuration
-    cc1101_write_reg(0x14, 0xF8);  // MDMCFG0 - Modem Configuration
-    cc1101_write_reg(0x15, 0x34);  // DEVIATN - Modem Deviation Setting
+#define PKTSTATUS_CCA           0x10
+#define PKTSTATUS_CS            0x40
 
-    // State Machine and AGC Configuration
-    cc1101_write_reg(0x16, 0x07);  // MCSM2 - Main Radio Control State Machine
-    cc1101_write_reg(0x17, 0x30);  // MCSM1 - Main Radio Control State Machine
-    cc1101_write_reg(0x18, 0x18);  // MCSM0 - Main Radio Control State Machine
-    cc1101_write_reg(0x1B, 0x43);  // AGCCTRL2 - AGC Control
-    cc1101_write_reg(0x1C, 0x40);  // AGCCTRL1 - AGC Control
-    cc1101_write_reg(0x1D, 0x91);  // AGCCTRL0 - AGC Control
 
-    // Front End and Calibration
-    cc1101_write_reg(0x21, 0x56);  // FREND1 - Front End RX Configuration
-    cc1101_write_reg(0x22, 0x10);  // FREND0 - Front End TX Configuration
-    cc1101_write_reg(0x23, 0xE9);  // FSCAL3 - Frequency Synthesizer Calibration
-    cc1101_write_reg(0x24, 0x2A);  // FSCAL2 - Frequency Synthesizer Calibration
-    cc1101_write_reg(0x25, 0x00);  // FSCAL1 - Frequency Synthesizer Calibration
-    cc1101_write_reg(0x26, 0x1F);  // FSCAL0 - Frequency Synthesizer Calibration
+#define RANDOM_OFFSET           67
+#define RANDOM_MULTIPLIER       109
+#define RSSI_VALID_DELAY_US     1300
 
-    // Calibrate and verify
-    cc1101_cmd_strobe(0x33);  // SCAL - Calibrate frequency synthesizer
-    while(cc1101_read_reg(0xF5) != 0x01);  // Wait for MARCSTATE to return to IDLE
+//static UINT8 rnd_seed = 0;
+
+HAL_StatusTypeDef __spi_write(uint8_t *addr, uint8_t *pData, uint16_t size){
+	HAL_StatusTypeDef status;
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET); //set Chip Select to Low
+
+	HAL_Delay(1);
+
+	status = HAL_SPI_Transmit(hal_spi, addr, 1, 0xFFFF);
+	if(status==HAL_OK && pData!=NULL)
+		status = HAL_SPI_Transmit(hal_spi, pData, size, 0xFFFF);
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET); //set Chip Select to High
+	return status;
 
 }
 
-void cc1101_reset(void) {
-    CC1101_CS_LOW();
-    uint8_t cmd = CC1101_SRES;
-    HAL_SPI_Transmit(&hspi1, &cmd, 1, HAL_MAX_DELAY);
-    CC1101_CS_HIGH();
-    HAL_Delay(1);  // Wait >40us (using 1ms for safety)
+HAL_StatusTypeDef __spi_read(uint8_t *addr, uint8_t *pData, uint16_t size){
+
+	HAL_StatusTypeDef status;
+
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET); //set Chip Select to Low
+
+
+	status = HAL_SPI_Transmit(hal_spi, addr, 1, 0xFFFF);
+	status = HAL_SPI_Receive(hal_spi, pData, size, 0xFFFF);
+
+
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET); //set Chip Select to High
+
+	return status;
+
 }
 
-bool cc1101_test_spi(void) {
-
-	uint8_t partnum = cc1101_read_reg(CC1101_PARTNUM);
-    uint8_t version = cc1101_read_reg(CC1101_VERSION);
-    uint8_t LQI = cc1101_read_reg(0xF3);
-    uint8_t PKTSTATUS = cc1101_read_reg(0xF7);
-    uint8_t RSSI = cc1101_read_reg(0xF4);
-    uint8_t MARCSTATE = cc1101_read_reg(0xF5);
-    uint8_t TEST1 = cc1101_read_reg(0x2D);
-    uint8_t TEST2 = cc1101_read_reg(0x2C);
-    uint8_t FSTEST = cc1101_read_reg(0x29);
-
-    // Check against known CC1101 values
-    return  (version != 0x00);
+void TI_write_reg(UINT8 addr, UINT8 value)
+{
+	__spi_write(&addr, &value, 1);
 }
 
-uint8_t cc1101_read_reg(uint8_t addr) {
-    // Configuration registers need burst header
-    uint8_t tx_data[2], rx_data[2];
+void TI_write_burst_reg(BYTE addr, BYTE* buffer, BYTE count)
+{
+	addr = (addr | WRITE_BURST);
+	__spi_write(&addr, buffer, count);
+}
 
-	if(addr <= 0x2F) {  // All config registers are 0x00-0x2F
-        tx_data[0] = 0x80 | 0x40 | addr;  // Burst read header
-    }
-    else {  // Status/test registers
-        tx_data[0] = 0x80 | addr;  // Normal read
-    }
-    tx_data[1] = 0x00; // dummy byte
-    
-
-
-    CC1101_CS_LOW();
-    HAL_SPI_TransmitReceive(&hspi1, tx_data, rx_data, 2, HAL_MAX_DELAY);
-    CC1101_CS_HIGH();
-    
-    return rx_data[1];
+void TI_strobe(BYTE strobe)
+{
+	__spi_write(&strobe, 0, 0);
 }
 
 
-void cc1101_write_reg(uint8_t addr, uint8_t value) {
-
-	uint8_t tx[2] = {addr, value};
-
-    
-    CC1101_CS_LOW();
-    HAL_SPI_Transmit(&hspi1, tx, 2, HAL_MAX_DELAY);
-    CC1101_CS_HIGH();
+BYTE TI_read_reg(BYTE addr)
+{
+	uint8_t data;
+	addr= (addr | READ_SINGLE);
+	__spi_read(&addr, &data, 1);
+	return data;
 }
 
-void cc1101_write_reg_burst(uint8_t addr, uint8_t* buff, int len) {
-
-    if(len > 1) {
-        addr = 0x40 | addr;  // Burst write header
-    }
-
-
-    CC1101_CS_LOW();
-    HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY);
-
-    HAL_SPI_Transmit(&hspi1, buff, len, HAL_MAX_DELAY);
-    CC1101_CS_HIGH();
+BYTE TI_read_status(BYTE addr)
+{
+	uint8_t data;
+	addr= (addr | READ_BURST);
+	__spi_read(&addr, &data, 1);
+	return data;
 }
 
-void cc1101_cmd_strobe(uint8_t cmd) {
-
-    CC1101_CS_LOW();
-    HAL_SPI_Transmit(&hspi1, &cmd, 1, HAL_MAX_DELAY); // Send strobe byte
-    CC1101_CS_HIGH();
+void TI_read_burst_reg(BYTE addr, BYTE* buffer, BYTE count)
+{
+	addr= (addr | READ_BURST);
+	__spi_read(&addr, buffer, count);
 }
 
-void cc1101_send_packet(uint8_t* buff, int len) {
+BOOL TI_receive_packet(BYTE* rxBuffer, UINT8 *length)
+{
+	BYTE status[2];
+	UINT8 packet_len;
+	// This status register is safe to read since it will not be updated after
+	// the packet has been received (See the CC1100 and 2500 Errata Note)
+	if (TI_read_status(CCxxx0_RXBYTES) & BYTES_IN_RXFIFO)
+	{
+		// Read length byte
+		packet_len = TI_read_reg(CCxxx0_RXFIFO);
 
-    cc1101_cmd_strobe(0x36); // Exit RX / TX, turn off frequency synthesizer
+		// Read data from RX FIFO and store in rxBuffer
+		if (packet_len <= *length)
+		{
+			TI_read_burst_reg(CCxxx0_RXFIFO, rxBuffer, packet_len);
+			*length = packet_len;
 
-    uint8_t packets_left;
-    uint8_t state;
+			// Read the 2 appended status bytes (status[0] = RSSI, status[1] = LQI)
+			TI_read_burst_reg(CCxxx0_RXFIFO, status, 2);
+			//while(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_0));
+			//while(!HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_0));
+			// MSB of LQI is the CRC_OK bit
+			return(status[LQI] & CRC_OK);
+		}
+		else
+		{
+			*length = packet_len;
 
-    state = cc1101_read_reg(0xF5);
+			// Make sure that the radio is in IDLE state before flushing the FIFO
+			// (Unless RXOFF_MODE has been changed, the radio should be in IDLE state at this point)
+			TI_strobe(CCxxx0_SIDLE);
 
-    cc1101_write_reg(0x06, len);
+			// Flush RX FIFO
+			TI_strobe(CCxxx0_SFRX);
+			return(FALSE);
+		}
+	}
+	else return(FALSE);
+}
 
-    // 2. Send a test packet
-    // uint8_t tx_data[] = {0xAA, 0x55, 0x01, 0x02, 0x03};
-    cc1101_write_reg_burst(0x3F, buff, len);
-    state = cc1101_read_reg(0xF5);
+void init_serial(UART_HandleTypeDef* huart){
 
-
-    HAL_Delay(10);
-
-    state = cc1101_read_reg(0xF5);
-
-    packets_left = cc1101_read_reg(0x3A);
-
-    cc1101_cmd_strobe(CC1101_STX);
-    state = cc1101_read_reg(0xF5);
-    packets_left = cc1101_read_reg(0x3A);
-
-
-    HAL_Delay(100);  // Transmission time
-
-    packets_left = cc1101_read_reg(0x3A);
-
-
-    // 4. Check MARCSTATE (0xF5) to confirm TX completion
-    state = cc1101_read_reg(0xF5);
-
-    cc1101_cmd_strobe(0x3B);
+	hal_uart = huart;
+}
 
 
+void TI_send_packet(BYTE* txBuffer, UINT8 size)
+{
+	BYTE status;
+
+  	TI_strobe(CCxxx0_SIDLE); //ïåðåâîäèì ìîäåì â IDLE
+
+    TI_write_reg(CCxxx0_TXFIFO, size);
+
+	status = TI_read_status(CCxxx0_TXBYTES);
+
+    TI_write_burst_reg(CCxxx0_TXFIFO, txBuffer, size);
+
+	status = TI_read_status(CCxxx0_TXBYTES);
+
+    TI_strobe(CCxxx0_STX);
+}
+
+
+//For 433MHz, +10dBm
+//it is also high
+BYTE paTable[] = {0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0};
+
+
+void TI_write_settings()
+{
+	TI_write_reg(0x4, 0xD3);
+	TI_write_reg(0x5, 0x91);
+	TI_write_reg(0x6, 0x0);
+	TI_write_reg(0x7, 0x4);
+	TI_write_reg(0x8, 0x5);
+	TI_write_reg(0x9, 0x0);
+	TI_write_reg(0xA, 0x0);
+	TI_write_reg(0xB, 0x6);
+	TI_write_reg(0xC, 0x23);
+	TI_write_reg(0xD, 0x10);
+	TI_write_reg(0xE, 0xB0);
+	TI_write_reg(0xF, 0x71);
+	TI_write_reg(0x10, 0xB);
+	TI_write_reg(0x11, 0xF8);
+	TI_write_reg(0x12, 0x2);
+	TI_write_reg(0x13, 0x2);
+	TI_write_reg(0x14, 0xF8);
+	TI_write_reg(0x15, 0x47);
+	TI_write_reg(0x16, 0x7);
+	TI_write_reg(0x17, 0x30);
+	TI_write_reg(0x18, 0x18);
+	TI_write_reg(0x19, 0x16);
+	TI_write_reg(0x1A, 0x1C);
+	TI_write_reg(0x1B, 0xC7);
+	TI_write_reg(0x1C, 0x0);
+	TI_write_reg(0x1D, 0xB2);
+	TI_write_reg(0x1E, 0x87);
+	TI_write_reg(0x1F, 0x6B);
+	TI_write_reg(0x20, 0xF8);
+	TI_write_reg(0x21, 0x56);
+	TI_write_reg(0x22, 0x10);
+	TI_write_reg(0x23, 0xE9);
+	TI_write_reg(0x24, 0x2A);
+	TI_write_reg(0x25, 0x0);
+	TI_write_reg(0x26, 0x1F);
+	TI_write_reg(0x27, 0x41);
+	TI_write_reg(0x28, 0x0);
+}
+
+void Power_up_reset()
+{
+	//Güç geldikten sonra CC1101 i Macro resetlemek için
+
+
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
+	HAL_Delay(1);
+
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
+	while(HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_6)); //CS pini LOW yaptığımızd MISO pini adres yazılmadan önce low da beklemeli
+	TI_strobe(CCxxx0_SRES);
+	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
+}
+
+
+void TI_init(SPI_HandleTypeDef* hspi, GPIO_TypeDef* cs_port, uint16_t cs_pin)
+{
+	//UINT8 i;
+	//UINT16 delay;
+	BYTE status;
+	hal_spi = hspi;
+	CS_GPIO_Port = cs_port;
+	CS_Pin = cs_pin;
+
+
+	for(int i=0; i<10; i++){
+	status = TI_read_status(CCxxx0_VERSION);
+		  if(status!=0x14)
+		  {
+		  }
+	}
+	TI_strobe(CCxxx0_SFRX); //î÷èùàåì RX FIFO
+	TI_strobe(CCxxx0_SFTX); //î÷èùàåì TX FIFO
+	TI_write_settings();
+	TI_write_burst_reg(CCxxx0_PATABLE, paTable, 8);//is it true
+
+	TI_write_reg(CCxxx0_FIFOTHR, 0x07);
+
+	TI_strobe(CCxxx0_SIDLE); //ïåðåâîäèì ìîäåì â IDLE
+	TI_strobe(CCxxx0_SFRX); //î÷èùàåì RX FIFO
+	TI_strobe(CCxxx0_SFTX); //î÷èùàåì TX FIFO
+
+	//TI_strobe(CCxxx0_SRX);
+
+	/*delay = RSSI_VALID_DELAY_US;
+
+	do
+	{
+		status = TI_read_status(CCxxx0_PKTSTATUS) & (PKTSTATUS_CCA | PKTSTATUS_CS);
+
+		if (status)
+		{
+			break;
+		}
+
+		ACC = 16;
+
+		while(--ACC);
+
+		delay -= 64;
+	} while(delay > 0);
+
+	for(i = 0; i < 16; i++)
+	{
+	  rnd_seed = (rnd_seed << 1) | (TI_read_status(CCxxx0_RSSI) & 0x01);
+	}
+
+	rnd_seed |= 0x0080;*/
+
+	TI_strobe(CCxxx0_SIDLE);
 }

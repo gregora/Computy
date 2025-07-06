@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "nmea_parse.h"
 #include "bno055.h"
+#include "cc1101.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -63,6 +64,8 @@ uint16_t rx_buff_ibus[16]; // start - 14 channels - checksum
 char rx_char_ibus;
 char rx_char_ibus_prev;
 int rx_i_ibus = 0;
+
+struct Packet p;
 
 
 /* USER CODE END PV */
@@ -156,14 +159,6 @@ int main(void)
   uint32_t error;
 
 
-  cc1101_init();
-
-  // Test burst read
-  cc1101_write_reg(0x0C, 0x12);  // Write to FSCTRL1
-  uint8_t val = cc1101_read_reg(0x0C);  // Should return 0x12
-
-  int succ = cc1101_test_spi();
-
 
   /* USER CODE END 2 */
 
@@ -214,14 +209,38 @@ int main(void)
 
   int count = 0;
 
+  uint8_t status;
+  uint8_t marcstate;
+  Power_up_reset();
+
+  HAL_Delay(1000);
+
+  TI_init(&hspi1, GPIOB, GPIO_PIN_6);
+
+  status = TI_read_status(CCxxx0_VERSION); // it is for checking only
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
-    uint8_t buff[58] = {1, 2, 3, 4};
-    cc1101_send_packet(&buff, 58);
+    uint8_t buff[58];
+
+    for (int i = 0; i < 58; i++){
+    	buff[i] = i;
+    }
+
+    TI_strobe(CCxxx0_SFTX); // flush the buffer
+
+    status = TI_read_status(CCxxx0_TXBYTES);
+
+    TI_send_packet((void*) &p, sizeof(struct Packet));
+
+    HAL_Delay(20);
+
+    status = TI_read_status(CCxxx0_TXBYTES);
+    marcstate = TI_read_status(CCxxx0_MARCSTATE);
 
 	if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
 	{
