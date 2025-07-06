@@ -63,7 +63,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 
 struct Packet{
-  uint16_t time;
+  uint32_t time;
 
   // orientation quaternions
   float q1;
@@ -78,7 +78,8 @@ struct Packet{
   float latitude;
   float longitude;
   int16_t altitude; // gps altitude in meters
-  uint8_t satellites; // number of satellites
+
+  int16_t satellites; // number of satellites
 
   int16_t channels[7];
 
@@ -91,7 +92,7 @@ struct Packet{
 
   255 - recovery
   */
-  uint8_t mode;
+  int16_t mode;
 
 };
 

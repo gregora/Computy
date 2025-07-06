@@ -155,7 +155,6 @@ int main(void)
       // Handle error
   }
 
-  uint8_t buffer;
   uint32_t error;
 
 
@@ -211,9 +210,8 @@ int main(void)
 
   uint8_t status;
   uint8_t marcstate;
-  Power_up_reset();
 
-  HAL_Delay(1000);
+  Power_up_reset();
 
   TI_init(&hspi1, GPIOB, GPIO_PIN_6);
 
@@ -224,12 +222,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-    uint8_t buff[58];
-
-    for (int i = 0; i < 58; i++){
-    	buff[i] = i;
-    }
 
     TI_strobe(CCxxx0_SFTX); // flush the buffer
 
@@ -244,13 +236,20 @@ int main(void)
 
 	if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
 	{
-	   // Use quaternion data (quat.w, quat.x, quat.y, quat.z)
+	    // Use quaternion data (quat.w, quat.x, quat.y, quat.z)
+		p.q1 = quat.w;
+		p.q2 = quat.x;
+		p.q3 = quat.y;
+		p.q4 = quat.z;
 	}
 
     // Read linear acceleration
     if(BNO055_ReadLinearAccel(&bno055, &accel) == HAL_OK)
     {
         // Use acceleration data (accel.x, accel.y, accel.z in m/s^2)
+    	p.ax = accel.x;
+    	p.ay = accel.y;
+    	p.az = accel.z;
     }
 
     BNO055_QuaternionToEuler(&quat, &euler);
@@ -268,6 +267,7 @@ int main(void)
     TIM3->CCR2 = rx_buff_ibus[6];
 
     uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
+    p.time = ms;
 
      if (gps.fix == 1){
 
@@ -276,6 +276,11 @@ int main(void)
 
     		latitude = gps.latitude;
     		longitude = gps.longitude;
+
+    		p.latitude = latitude;
+    		p.longitude = longitude;
+    		p.altitude = gps.altitude;
+    		p.satellites = gps.satelliteCount;
 
         }
 

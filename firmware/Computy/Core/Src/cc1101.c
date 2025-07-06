@@ -38,8 +38,6 @@ HAL_StatusTypeDef __spi_write(uint8_t *addr, uint8_t *pData, uint16_t size){
 	HAL_StatusTypeDef status;
 	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET); //set Chip Select to Low
 
-	HAL_Delay(1);
-
 	status = HAL_SPI_Transmit(hal_spi, addr, 1, 0xFFFF);
 	if(status==HAL_OK && pData!=NULL)
 		status = HAL_SPI_Transmit(hal_spi, pData, size, 0xFFFF);
