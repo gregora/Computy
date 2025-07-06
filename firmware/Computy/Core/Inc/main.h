@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "quaternion.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -65,11 +65,8 @@ void Error_Handler(void);
 struct Packet{
   uint32_t time;
 
-  // orientation quaternions
-  float q1;
-  float q2;
-  float q3;
-  float q4;
+  // orientation quaternion
+  struct Quaternion q;
 
   float ax;
   float ay;

@@ -48,13 +48,34 @@ HAL_StatusTypeDef BNO055_Init(BNO055_Handle_t *hdev, I2C_HandleTypeDef *i2cHandl
     /* Set power mode to normal */
     if(BNO055_WriteRegister(hdev, BNO055_PWR_MODE_ADDR, BNO055_POWER_MODE_NORMAL) != HAL_OK)
         return HAL_ERROR;
-    
+
+
+    /* First set to CONFIG mode for axis remap */
+    if(BNO055_SetOperationMode(hdev, BNO055_OPERATION_MODE_CONFIG) != HAL_OK)
+        return HAL_ERROR;
+
+    HAL_Delay(20); // Wait for mode change
+
+
+
+    /* Set axis remap */
+    /* DEFAULT */
+    if(BNO055_WriteRegister(hdev, BNO055_AXIS_MAP_CONFIG_ADDR, 0x24) != HAL_OK)
+        return HAL_ERROR;
+    /* Set axis map sign */
+    if(BNO055_WriteRegister(hdev, BNO055_AXIS_MAP_SIGN_ADDR, 0x00) != HAL_OK)
+        return HAL_ERROR;
+
+
+
     /* Set operation mode to NDOF (sensor fusion) */
     if(BNO055_SetOperationMode(hdev, BNO055_OPERATION_MODE_NDOF) != HAL_OK)
         return HAL_ERROR;
-    
+
+
     HAL_Delay(20); // Wait for mode change
-    
+
+
     hdev->initialized = true;
     
     return HAL_OK;

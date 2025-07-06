@@ -24,6 +24,7 @@
 #include "nmea_parse.h"
 #include "bno055.h"
 #include "cc1101.h"
+#include "quaternion.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -217,6 +218,9 @@ int main(void)
 
   status = TI_read_status(CCxxx0_VERSION); // it is for checking only
 
+  struct Quaternion quat_axis_remap = {1, 0, 0, 0};
+  struct Quaternion quat_raw;
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -237,10 +241,13 @@ int main(void)
 	if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
 	{
 	    // Use quaternion data (quat.w, quat.x, quat.y, quat.z)
-		p.q1 = quat.w;
-		p.q2 = quat.x;
-		p.q3 = quat.y;
-		p.q4 = quat.z;
+		quat_raw.w = quat.w;
+		quat_raw.x = quat.x;
+		quat_raw.y = quat.y;
+		quat_raw.z = quat.z;
+
+		p.q = quat_raw;
+
 	}
 
     // Read linear acceleration
