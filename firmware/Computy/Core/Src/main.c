@@ -219,7 +219,9 @@ int main(void)
   status = TI_read_status(CCxxx0_VERSION); // it is for checking only
 
   struct Quaternion quat_axis_remap = {0.0f, 1.0f, 0.0f, 0.0f}; // y -> -y, z -> -z
+  struct Quaternion quat_axis_remap_inv = {0.0f, -1.0f, 0.0f, 0.0f};
   struct Quaternion quat_raw;
+  struct Quaternion temp;
 
   while (1)
   {
@@ -246,7 +248,10 @@ int main(void)
 		quat_raw.y = quat.y;
 		quat_raw.z = quat.z;
 
-		p.q = quaternion_multiply(&quat_axis_remap, &quat_raw);
+		// Transform vector into original space (a_inv), apply q, transform back into re-mapped space (a)
+		// a * q * a_inv
+		temp = quaternion_multiply(&quat_axis_remap, &quat_raw);
+		p.q = quaternion_multiply(&temp, &quat_axis_remap_inv);
 
 	}
 
