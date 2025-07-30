@@ -218,7 +218,7 @@ int main(void)
 
   status = TI_read_status(CCxxx0_VERSION); // it is for checking only
 
-  struct Quaternion quat_axis_remap = {1, 0, 0, 0};
+  struct Quaternion quat_axis_remap = {0.0f, 1.0f, 0.0f, 0.0f}; // y -> -y, z -> -z
   struct Quaternion quat_raw;
 
   while (1)
@@ -246,9 +246,11 @@ int main(void)
 		quat_raw.y = quat.y;
 		quat_raw.z = quat.z;
 
-		p.q = quat_raw;
+		p.q = quaternion_multiply(&quat_axis_remap, &quat_raw);
 
 	}
+
+
 
     // Read linear acceleration
     if(BNO055_ReadLinearAccel(&bno055, &accel) == HAL_OK)

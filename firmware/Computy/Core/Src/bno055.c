@@ -66,6 +66,7 @@ HAL_StatusTypeDef BNO055_Init(BNO055_Handle_t *hdev, I2C_HandleTypeDef *i2cHandl
     if(BNO055_WriteRegister(hdev, BNO055_AXIS_MAP_SIGN_ADDR, 0x00) != HAL_OK)
         return HAL_ERROR;
 
+    HAL_Delay(20); // Wait for mode change
 
 
     /* Set operation mode to NDOF (sensor fusion) */
