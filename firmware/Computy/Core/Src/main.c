@@ -61,7 +61,7 @@ int rx_i_gps = 0;
 
 GPS gps;
 
-uint16_t rx_buff_ibus[16]; // start - 14 channels - checksum
+uint16_t rx_buff_ibus[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // start - 14 channels - checksum
 char rx_char_ibus;
 char rx_char_ibus_prev;
 int rx_i_ibus = 0;
@@ -148,6 +148,7 @@ int main(void)
   BNO055_AngularVelocity_t ang_vel;
 
   // Initialize BNO055
+  HAL_Delay(500); // NECESSARY delay
   HAL_StatusTypeDef ret;
   ret = BNO055_Init(&bno055, &hi2c2, BNO055_I2C_ADDR1);
 
@@ -158,29 +159,10 @@ int main(void)
 
   uint32_t error;
 
-
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-
-
-  //extern I2C_HandleTypeDef hi2c2;
-
-  /*
-  ret = HAL_I2C_Mem_Read(&hi2c2,
-		  	  	  	  	 (0x28 << 1),
-                         0x01,
-                         I2C_MEMADD_SIZE_8BIT,
-                         &buffer,
-                         1,
-                         1000);
-
-
-  error = HAL_I2C_GetError(&hi2c2);
- */
 
 
   if (error == HAL_I2C_ERROR_NONE) {
@@ -575,7 +557,7 @@ static void MX_TIM8_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 1500;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -585,6 +567,7 @@ static void MX_TIM8_Init(void)
   {
     Error_Handler();
   }
+  sConfigOC.Pulse = 1500;
   if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
