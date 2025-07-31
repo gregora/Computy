@@ -272,13 +272,17 @@ int main(void)
 
     }
 
-    TIM8->CCR1 = rx_buff_ibus[1];
-    TIM8->CCR2 = rx_buff_ibus[2];
-    TIM8->CCR3 = rx_buff_ibus[3];
-    TIM8->CCR4 = rx_buff_ibus[4];
+    TIM8->CCR1 = rx_buff_ibus[1] - 500;
+    TIM8->CCR2 = rx_buff_ibus[2] - 500;
+    TIM8->CCR3 = rx_buff_ibus[3] - 500;
+    TIM8->CCR4 = rx_buff_ibus[4] - 500;
 
-    TIM3->CCR1 = rx_buff_ibus[5];
-    TIM3->CCR2 = rx_buff_ibus[6];
+    TIM3->CCR1 = rx_buff_ibus[5] - 500;
+    TIM3->CCR2 = rx_buff_ibus[6] - 500;
+
+    for (int i = 1; i < 8; i++){
+    	p.channels[i - 1] = rx_buff_ibus[i];
+    }
 
     uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
     p.time = ms;
