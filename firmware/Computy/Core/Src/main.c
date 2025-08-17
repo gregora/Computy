@@ -63,6 +63,7 @@ GPS gps;
 
 uint16_t rx_buff_ibus[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // start - 14 channels - checksum
 uint16_t rx_checksum = 0xFFFF;
+uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 char rx_char_ibus;
 char rx_char_ibus_prev;
 int rx_i_ibus = 0;
@@ -219,7 +220,7 @@ int main(void)
 
     TI_send_packet((void*) &p, sizeof(struct Packet));
 
-    HAL_Delay(50);
+    HAL_Delay(30);
 
     status = TI_read_status(CCxxx0_TXBYTES);
     marcstate = TI_read_status(CCxxx0_MARCSTATE);
@@ -256,16 +257,16 @@ int main(void)
 
     }
 
-    TIM8->CCR1 = rx_buff_ibus[1] - 500;
-    TIM8->CCR2 = rx_buff_ibus[2] - 500;
-    TIM8->CCR3 = rx_buff_ibus[3] - 500;
-    TIM8->CCR4 = rx_buff_ibus[4] - 500;
+    TIM8->CCR1 = channels[0] - 500;
+    TIM8->CCR2 = channels[1] - 500;
+    TIM8->CCR3 = channels[2] - 500;
+    TIM8->CCR4 = channels[3] - 500;
 
-    TIM3->CCR1 = rx_buff_ibus[5] - 500;
-    TIM3->CCR2 = rx_buff_ibus[6] - 500;
+    TIM3->CCR1 = channels[4] - 500;
+    TIM3->CCR2 = channels[5] - 500;
 
-    for (int i = 1; i < 8; i++){
-    	p.channels[i - 1] = rx_buff_ibus[i];
+    for (int i = 0; i < 7; i++){
+    	p.channels[i - 1] = channels[i];
     }
 
     uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
@@ -716,6 +717,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			uint16_t checksum2 = rx_buff_ibus[15];
 			uint16_t checksum = rx_checksum;
 
+			if(rx_checksum == rx_buff_ibus[15]){
+				// checksum matches :)
+				memcpy(channels, &rx_buff_ibus[1], sizeof(uint16_t)*14);
+			}else{
+				// checksum doesnt match :(
+				int cs = rx_checksum;
+			}
 
 			rx_i_ibus = 0;
 			rx_checksum = 0xFFFF;
