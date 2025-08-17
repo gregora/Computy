@@ -62,6 +62,7 @@ int rx_i_gps = 0;
 GPS gps;
 
 uint16_t rx_buff_ibus[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // start - 14 channels - checksum
+uint16_t rx_checksum = 0xFFFF;
 char rx_char_ibus;
 char rx_char_ibus_prev;
 int rx_i_ibus = 0;
@@ -205,6 +206,7 @@ int main(void)
   struct Quaternion quat_raw;
   struct Quaternion temp;
 
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -217,7 +219,7 @@ int main(void)
 
     TI_send_packet((void*) &p, sizeof(struct Packet));
 
-    HAL_Delay(20);
+    HAL_Delay(50);
 
     status = TI_read_status(CCxxx0_TXBYTES);
     marcstate = TI_read_status(CCxxx0_MARCSTATE);
@@ -700,17 +702,32 @@ static void MX_GPIO_Init(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == USART1){
+
 		// Handle ibus RX
 		if(rx_char_ibus_prev == 0x20 && rx_char_ibus == 0x40){
+			rx_checksum = 0xFFFF;
+			rx_buff_ibus[0] = (rx_char_ibus_prev | rx_char_ibus << 8);
+
 			rx_i_ibus = 1;
+
 		}
 
 		if(rx_i_ibus == 32){
+			uint16_t checksum2 = rx_buff_ibus[15];
+			uint16_t checksum = rx_checksum;
+
+
 			rx_i_ibus = 0;
+			rx_checksum = 0xFFFF;
 		}
 
 		if(rx_i_ibus % 2 == 1){
 			// little endian
+			if (rx_i_ibus < 30){
+				rx_checksum -= rx_char_ibus_prev;
+				rx_checksum -= rx_char_ibus;
+			}
+
 			rx_buff_ibus[(rx_i_ibus - 1) / 2] = (rx_char_ibus_prev | rx_char_ibus << 8);
 		}
 
