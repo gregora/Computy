@@ -319,8 +319,8 @@ int main(void)
 	    	p.channels[i] = channels[i];
 	    }
 	}else if (p.mode == 1){
-		p.channels[0] = AILERON_TRIM  + (int16_t) ((euler.roll*RAD2DEG  -  0.0f)*10.0f);
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) ((euler.pitch*RAD2DEG - 10.0f)* 3.0f);
+		p.channels[0] = AILERON_TRIM  + (int16_t) ((euler.roll*RAD2DEG  -  0.0f)*10.0f + (ang_vel.x)*2.0f);
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) ((euler.pitch*RAD2DEG - 10.0f)* 3.0f - (ang_vel.y)*2.0f);
 		p.channels[3] = RUDDER_TRIM;
 	}
 
