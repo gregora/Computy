@@ -266,7 +266,7 @@ int main(void)
     TIM3->CCR2 = channels[5] - 500;
 
     for (int i = 0; i < 7; i++){
-    	p.channels[i - 1] = channels[i];
+    	p.channels[i] = channels[i];
     }
 
     uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
