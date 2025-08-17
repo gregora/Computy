@@ -34,6 +34,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define RAD2DEG  180.0f / 3.1415f
+
+#define ELEVATOR_TRIM (int16_t)1521
+#define AILERON_TRIM  (int16_t)1419
+#define RUDDER_TRIM   (int16_t)1462
 
 /* USER CODE END PD */
 
@@ -251,7 +256,7 @@ int main(void)
     	p.az = accel.z;
     }
 
-    BNO055_QuaternionToEuler(&quat, &euler);
+    BNO055_QuaternionToEuler(&p.q, &euler);
 
     if(BNO055_ReadAngularVelocity(&bno055, &ang_vel) == HAL_OK) {
 
@@ -281,12 +286,55 @@ int main(void)
 	float fixps = ((float) count) * 1000 / ms;
 
 
-	// Control law
+	// Choose control law
+	// Mode 0 - Manual
+	if      (channels[4] == 1000 && channels[5] == 1000 && channels[6] == 1000){
+		p.mode = 0;
+	}
+	// Mode 1 - Take-off
+	else if (channels[4] == 1000 && channels[5] == 1000 && channels[6] == 2000 && (p.mode == 0 || p.mode == 1)){
+		p.mode = 1;
 
-    for (int i = 0; i < 7; i++){
-    	p.channels[i] = channels[i];
-    }
+		// Also enter recovery mode if attitude control sticks are not centered
+		if (channels[0] < 1400 || channels[0] > 1600){
+			p.mode = 255;
+		}
+		if (channels[1] < 1400 || channels[1] > 1600){
+			p.mode = 255;
+		}
+		if (channels[3] < 1400 || channels[3] > 1600){
+			p.mode = 255;
+		}
+	}
 
+	// Mode 255 - Recovery
+	else {
+		p.mode = 255;
+	}
+
+
+	// Respond to mode
+	if (p.mode == 0 || p.mode == 255){
+	    for (int i = 0; i < 7; i++){
+	    	p.channels[i] = channels[i];
+	    }
+	}else if (p.mode == 1){
+		p.channels[0] = AILERON_TRIM  + (int16_t) ((euler.roll*RAD2DEG  -  0.0f)*10.0f);
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) ((euler.pitch*RAD2DEG - 10.0f)* 3.0f);
+		p.channels[3] = RUDDER_TRIM;
+	}
+
+	// Limit channel values
+	for (int i = 0; i < 7; i++){
+		if (p.channels[i] < 1000){
+			p.channels[i] = 1000;
+		}
+		if (p.channels[i] > 2000){
+			p.channels[i] = 2000;
+		}
+	}
+
+    // Apply actuation values
 	TIM8->CCR1 = p.channels[0] - 500;
     TIM8->CCR2 = p.channels[1] - 500;
     TIM8->CCR3 = p.channels[2] - 500;
