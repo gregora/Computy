@@ -202,7 +202,7 @@ int main(void)
 
   status = TI_read_status(CCxxx0_VERSION); // it is for checking only
 
-  struct Quaternion quat_axis_remap = {0.0f, 1.0f, 0.0f, 0.0f}; // y -> -y, z -> -z
+  struct Quaternion quat_axis_remap = {0.0f, 1.0f, 0.0f, 0.0f};       // y -> -y, z -> -z
   struct Quaternion quat_axis_remap_inv = {0.0f, -1.0f, 0.0f, 0.0f};
   struct Quaternion quat_raw;
   struct Quaternion temp;
@@ -257,18 +257,6 @@ int main(void)
 
     }
 
-    TIM8->CCR1 = channels[0] - 500;
-    TIM8->CCR2 = channels[1] - 500;
-    TIM8->CCR3 = channels[2] - 500;
-    TIM8->CCR4 = channels[3] - 500;
-
-    TIM3->CCR1 = channels[4] - 500;
-    TIM3->CCR2 = channels[5] - 500;
-
-    for (int i = 0; i < 7; i++){
-    	p.channels[i] = channels[i];
-    }
-
     uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
     p.time = ms;
 
@@ -291,6 +279,22 @@ int main(void)
      }
 
 	float fixps = ((float) count) * 1000 / ms;
+
+
+	// Control law
+
+    for (int i = 0; i < 7; i++){
+    	p.channels[i] = channels[i];
+    }
+
+	TIM8->CCR1 = p.channels[0] - 500;
+    TIM8->CCR2 = p.channels[1] - 500;
+    TIM8->CCR3 = p.channels[2] - 500;
+    TIM8->CCR4 = p.channels[3] - 500;
+
+    TIM3->CCR1 = p.channels[4] - 500;
+    TIM3->CCR2 = p.channels[5] - 500;
+
 
 
   }
