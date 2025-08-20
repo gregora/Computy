@@ -292,7 +292,7 @@ int main(void)
 		p.mode = 0;
 	}
 	// Mode 1 - Take-off
-	else if (channels[4] == 1000 && channels[5] == 1000 && channels[6] == 2000 && (p.mode == 0 || p.mode == 1)){
+	else if (channels[4] == 2000 && channels[5] == 1000 && channels[6] == 1000 && (p.mode == 0 || p.mode == 1)){
 		p.mode = 1;
 
 		// Also enter recovery mode if attitude control sticks are not centered
