@@ -36,7 +36,7 @@
 /* USER CODE BEGIN PD */
 #define RAD2DEG  180.0f / 3.1415f
 
-#define ELEVATOR_TRIM (int16_t)1521
+#define ELEVATOR_TRIM (int16_t)1454
 #define AILERON_TRIM  (int16_t)1419
 #define RUDDER_TRIM   (int16_t)1462
 
@@ -319,8 +319,8 @@ int main(void)
 	    	p.channels[i] = channels[i];
 	    }
 	}else if (p.mode == 1){
-		p.channels[0] = AILERON_TRIM  + (int16_t) ((euler.roll*RAD2DEG  -  0.0f)*10.0f + (ang_vel.x)*2.0f);
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) ((euler.pitch*RAD2DEG - 10.0f)* 3.0f - (ang_vel.y)*2.0f);
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.015f + (ang_vel.x)*0.005f));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.015f - (ang_vel.y)*0.005f));
 		p.channels[3] = RUDDER_TRIM;
 	}
 
