@@ -36,8 +36,8 @@
 /* USER CODE BEGIN PD */
 #define RAD2DEG  180.0f / 3.1415f
 
-#define ELEVATOR_TRIM (int16_t)1454
-#define AILERON_TRIM  (int16_t)1419
+#define ELEVATOR_TRIM (int16_t)1472
+#define AILERON_TRIM  (int16_t)1437
 #define RUDDER_TRIM   (int16_t)1462
 
 /* USER CODE END PD */
@@ -147,7 +147,6 @@ int main(void)
 
   HAL_TIM_Base_Start(&htim2);  // Start TIM2 in polling mode
 
-
   BNO055_Handle_t bno055;
   BNO055_Quaternion_t quat;
   BNO055_LinearAccel_t accel;
@@ -242,6 +241,7 @@ int main(void)
 		// a * q * a_inv
 		temp = quaternion_multiply(&quat_axis_remap, &quat_raw);
 		p.q = quaternion_multiply(&temp, &quat_axis_remap_inv);
+	    BNO055_QuaternionToEuler(&p.q, &euler);
 
 	}
 
@@ -256,7 +256,6 @@ int main(void)
     	p.az = accel.z;
     }
 
-    BNO055_QuaternionToEuler(&p.q, &euler);
 
     if(BNO055_ReadAngularVelocity(&bno055, &ang_vel) == HAL_OK) {
 
@@ -266,22 +265,19 @@ int main(void)
     p.time = ms;
 
      if (gps.fix == 1){
-
         if (latitude != gps.latitude && longitude != gps.longitude){
         	count += 1;
 
     		latitude = gps.latitude;
     		longitude = gps.longitude;
-
-    		p.latitude = latitude;
-    		p.longitude = longitude;
-    		p.altitude = gps.altitude;
-    		p.satellites = gps.satelliteCount;
-
         }
-
-
      }
+
+	p.latitude = gps.latitude;
+	p.longitude = gps.longitude;
+	p.altitude = gps.altitude;
+	p.satellites = gps.satelliteCount;
+
 
 	float fixps = ((float) count) * 1000 / ms;
 
@@ -319,8 +315,8 @@ int main(void)
 	    	p.channels[i] = channels[i];
 	    }
 	}else if (p.mode == 1){
-		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.015f + (ang_vel.x)*0.005f));
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.015f - (ang_vel.y)*0.005f));
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0075f + (ang_vel.x)*0.0020f));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0100f - (ang_vel.y)*0.0020f));
 		p.channels[3] = RUDDER_TRIM;
 	}
 
@@ -754,7 +750,10 @@ static void MX_GPIO_Init(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+
 	if(huart->Instance == USART1){
+
+		HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
 
 		// Handle ibus RX
 		if(rx_char_ibus_prev == 0x20 && rx_char_ibus == 0x40){
@@ -765,9 +764,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 		}
 
-		if(rx_i_ibus == 32){
-			uint16_t checksum2 = rx_buff_ibus[15];
-			uint16_t checksum = rx_checksum;
+		if(rx_i_ibus >= 32){
 
 			if(rx_checksum == rx_buff_ibus[15]){
 				// checksum matches :)
@@ -793,9 +790,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 		rx_i_ibus += 1;
 		rx_char_ibus_prev = rx_char_ibus;
-		HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
 
 	}else if(huart->Instance == UART4){
+
+		HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
+
 		// Handle GPS RX
 		if(rx_char_gps == '$'){
 			rx_buff_gps[rx_i_gps + 1] = '\r';
@@ -810,18 +809,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			}
 		}
 
-		if(rx_i_gps == 83){
+		if(rx_i_gps >= 83){
 			rx_i_gps = 0;
 		}
 
 		rx_buff_gps[rx_i_gps] = rx_char_gps;
 		rx_i_gps += 1;
 
-		HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
 
 	}
 }
-
 
 int __io_putchar(int ch)
 {
