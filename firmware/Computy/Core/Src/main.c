@@ -58,6 +58,7 @@ TIM_HandleTypeDef htim8;
 
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
+DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
 char rx_buff_gps[83]; // NMEA messages are at most 82 chars long
@@ -66,12 +67,8 @@ int rx_i_gps = 0;
 
 GPS gps;
 
-uint16_t rx_buff_ibus[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // start - 14 channels - checksum
-uint16_t rx_checksum = 0xFFFF;
+uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum
 uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-char rx_char_ibus;
-char rx_char_ibus_prev;
-int rx_i_ibus = 0;
 
 struct Packet p;
 
@@ -81,6 +78,7 @@ struct Packet p;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_UART4_Init(void);
 static void MX_TIM8_Init(void);
@@ -126,6 +124,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C2_Init();
   MX_UART4_Init();
   MX_TIM8_Init();
@@ -190,7 +189,8 @@ int main(void)
 
 
   HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
-  HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
+  //HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
+  HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
 
   double latitude = 0;
   double longitude = 0;
@@ -281,6 +281,7 @@ int main(void)
 
 	float fixps = ((float) count) * 1000 / ms;
 
+	parse_ibus();
 
 	// Choose control law
 	// Mode 0 - Manual
@@ -716,6 +717,22 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -748,15 +765,42 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void parse_ibus(){
+
+	int start = 0;
+	for(int i = 0; i < 32; i++){
+		if(rx_buff_ibus[i] == 0x20 && rx_buff_ibus[(i + 1) % 32] == 0x40){
+			start = i;
+			break;
+		}
+	}
+
+	uint16_t checksum_calculated = 0xFFFF;
+	for(int i = start; i < 30 + start; i++){
+		checksum_calculated -= rx_buff_ibus[i % 32];
+	}
+
+	uint16_t checksum_received = (((uint16_t) rx_buff_ibus[(31 + start) % 32]) << 8) + rx_buff_ibus[(30 + start) % 32];
+
+	if(checksum_received == checksum_calculated){
+		for (int i = 0; i < 14; i++){
+			channels[i] = (((uint16_t) rx_buff_ibus[(start + 2*(i+1) + 1) % 32]) << 8) + rx_buff_ibus[(start + 2*(i+1) + 0) % 32];
+		}
+	}
+
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 
 	if(huart->Instance == USART1){
+	  HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
 
-		HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
+		//HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
 
 		// Handle ibus RX
-		if(rx_char_ibus_prev == 0x20 && rx_char_ibus == 0x40){
+		/*
+	  if(rx_char_ibus_prev == 0x20 && rx_char_ibus == 0x40){
 			rx_checksum = 0xFFFF;
 			rx_buff_ibus[0] = (rx_char_ibus_prev | rx_char_ibus << 8);
 
@@ -790,6 +834,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 		rx_i_ibus += 1;
 		rx_char_ibus_prev = rx_char_ibus;
+		*/
 
 	}else if(huart->Instance == UART4){
 
