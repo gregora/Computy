@@ -190,13 +190,7 @@ int main(void)
 
 
   HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
-  //HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
   HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
-
-  double latitude = 0;
-  double longitude = 0;
-
-  int count = 0;
 
   uint8_t status;
   uint8_t marcstate;
@@ -206,6 +200,7 @@ int main(void)
   TI_init(&hspi1, GPIOB, GPIO_PIN_6);
 
   status = TI_read_status(CCxxx0_VERSION); // it is for checking only
+  uint32_t last_transmission = 0; // when was the last packet sent?
 
   struct Quaternion quat_axis_remap = {0.0f, 1.0f, 0.0f, 0.0f};       // y -> -y, z -> -z
   struct Quaternion quat_axis_remap_inv = {0.0f, -1.0f, 0.0f, 0.0f};
@@ -218,14 +213,17 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
+	p.time = ms;
 
-    TI_strobe(CCxxx0_SFTX); // flush the buffer
+	if(ms - last_transmission > 30){
+	    TI_strobe(CCxxx0_SFTX); // flush the buffer
+	    status = TI_read_status(CCxxx0_TXBYTES);
+	    TI_send_packet((void*) &p, sizeof(struct Packet));
+	    last_transmission = ms;
+	}
 
-    status = TI_read_status(CCxxx0_TXBYTES);
-
-    TI_send_packet((void*) &p, sizeof(struct Packet));
-
-    HAL_Delay(30);
+    HAL_Delay(3);
 
     status = TI_read_status(CCxxx0_TXBYTES);
     marcstate = TI_read_status(CCxxx0_MARCSTATE);
@@ -262,28 +260,17 @@ int main(void)
 
     }
 
-    uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
-    p.time = ms;
-
+    // Parse GPS
 	nmea_parse(&gps, nmea_sentence);
 
-     if (gps.fix == 1){
-        if (latitude != gps.latitude && longitude != gps.longitude){
-        	count += 1;
+    if (gps.fix == 1){
+    	p.latitude = gps.latitude;
+    	p.longitude = gps.longitude;
+    	p.altitude = gps.altitude;
+    	p.satellites = gps.satelliteCount;
+    }
 
-    		latitude = gps.latitude;
-    		longitude = gps.longitude;
-        }
-     }
-
-	p.latitude = gps.latitude;
-	p.longitude = gps.longitude;
-	p.altitude = gps.altitude;
-	p.satellites = gps.satelliteCount;
-
-
-	float fixps = ((float) count) * 1000 / ms;
-
+    // Parse iBus
 	parse_ibus();
 
 	// Choose control law
