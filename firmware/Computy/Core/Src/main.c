@@ -795,47 +795,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 	if(huart->Instance == USART1){
 	  HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
-
-		//HAL_UART_Receive_IT(&huart1, &rx_char_ibus, 1);
-
-		// Handle ibus RX
-		/*
-	  if(rx_char_ibus_prev == 0x20 && rx_char_ibus == 0x40){
-			rx_checksum = 0xFFFF;
-			rx_buff_ibus[0] = (rx_char_ibus_prev | rx_char_ibus << 8);
-
-			rx_i_ibus = 1;
-
-		}
-
-		if(rx_i_ibus >= 32){
-
-			if(rx_checksum == rx_buff_ibus[15]){
-				// checksum matches :)
-				memcpy(channels, &rx_buff_ibus[1], sizeof(uint16_t)*14);
-			}else{
-				// checksum doesnt match :(
-				int cs = rx_checksum;
-			}
-
-			rx_i_ibus = 0;
-			rx_checksum = 0xFFFF;
-		}
-
-		if(rx_i_ibus % 2 == 1){
-			// little endian
-			if (rx_i_ibus < 30){
-				rx_checksum -= rx_char_ibus_prev;
-				rx_checksum -= rx_char_ibus;
-			}
-
-			rx_buff_ibus[(rx_i_ibus - 1) / 2] = (rx_char_ibus_prev | rx_char_ibus << 8);
-		}
-
-		rx_i_ibus += 1;
-		rx_char_ibus_prev = rx_char_ibus;
-		*/
-
 	}else if(huart->Instance == UART4){
 
 		HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
