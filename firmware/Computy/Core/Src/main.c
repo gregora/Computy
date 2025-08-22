@@ -61,9 +61,10 @@ UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
-char rx_buff_gps[83]; // NMEA messages are at most 82 chars long
+char rx_buff_gps[83]; // sentence buffer - NMEA messages are at most 82 chars long
 char rx_char_gps;
 int rx_i_gps = 0;
+char nmea_sentence[83]; // actual sentence
 
 GPS gps;
 
@@ -263,6 +264,8 @@ int main(void)
 
     uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
     p.time = ms;
+
+	nmea_parse(&gps, nmea_sentence);
 
      if (gps.fix == 1){
         if (latitude != gps.latitude && longitude != gps.longitude){
@@ -806,11 +809,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			rx_buff_gps[rx_i_gps + 3] = '\0';
 
 			rx_i_gps = 0;
-			nmea_parse(&gps, rx_buff_gps);
+
+			memcpy(nmea_sentence, rx_buff_gps, 83);
 
 			for (int i = 0; i < 83; i++){
 				rx_buff_gps[i] = '\0';
 			}
+
 		}
 
 		if(rx_i_gps >= 83){
@@ -819,8 +824,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 		rx_buff_gps[rx_i_gps] = rx_char_gps;
 		rx_i_gps += 1;
-
-
 	}
 }
 
