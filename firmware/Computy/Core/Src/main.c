@@ -761,7 +761,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 
 	if(huart->Instance == USART1){
-	  HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
+		// Do nothig - we are using circular buffer
 	}else if(huart->Instance == UART4){
 
 		HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
