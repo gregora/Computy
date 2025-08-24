@@ -25,6 +25,7 @@
 #include "bno055.h"
 #include "cc1101.h"
 #include "quaternion.h"
+#include "ibus.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -68,7 +69,7 @@ char nmea_sentence[83]; // actual sentence
 
 GPS gps;
 
-uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum
+uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum (circular buffer)
 uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 struct Packet p;
@@ -271,7 +272,7 @@ int main(void)
     }
 
     // Parse iBus
-	parse_ibus();
+	parse_ibus(rx_buff_ibus, channels);
 
 	// Choose control law
 	// Mode 0 - Manual
@@ -755,30 +756,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void parse_ibus(){
-
-	int start = 0;
-	for(int i = 0; i < 32; i++){
-		if(rx_buff_ibus[i] == 0x20 && rx_buff_ibus[(i + 1) % 32] == 0x40){
-			start = i;
-			break;
-		}
-	}
-
-	uint16_t checksum_calculated = 0xFFFF;
-	for(int i = start; i < 30 + start; i++){
-		checksum_calculated -= rx_buff_ibus[i % 32];
-	}
-
-	uint16_t checksum_received = (((uint16_t) rx_buff_ibus[(31 + start) % 32]) << 8) + rx_buff_ibus[(30 + start) % 32];
-
-	if(checksum_received == checksum_calculated){
-		for (int i = 0; i < 14; i++){
-			channels[i] = (((uint16_t) rx_buff_ibus[(start + 2*(i+1) + 1) % 32]) << 8) + rx_buff_ibus[(start + 2*(i+1) + 0) % 32];
-		}
-	}
-
-}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
