@@ -184,11 +184,17 @@ int main(void)
   status = TI_read_status(CCxxx0_VERSION); // it is for checking only
   uint32_t last_transmission = 0; // when was the last packet sent?
 
+  // Axis remap necessary transformations
   struct Quaternion quat_axis_remap =     {0.0,  1.0f, 0.0, 0.0}; //  z -> -z,  y -> -y
   struct Quaternion quat_axis_remap_inv = {0.0, -1.0f, 0.0, 0.0}; // -z ->  z, -y ->  y
   struct Quaternion quat_rotate_azimuth = {0.70710678118, 0, 0, 0.70710678118}; // rotate azimuth by 90 deg
   struct Quaternion quat_raw;
   struct Quaternion temp;
+
+  // acceleration in global coordinates
+  float ax_global = 0.0f;
+  float ay_global = 0.0f;
+  float az_global = 0.0f;
 
   // Example target location: Ljubljana Castle
   float target_lat = 46.048794785175716;
@@ -256,6 +262,15 @@ int main(void)
     	p.ax = accel.x;
     	p.ay = accel.y;
     	p.az = accel.z;
+
+    	float raw_accel[3] = {p.ax, p.ay, p.az};
+
+    	// Calculate acceleration in global coordinates
+    	struct Quaternion a_global = quaternion_transform_vector(&p.q, raw_accel);
+
+    	ax_global = a_global.x;
+    	ay_global = a_global.y;
+    	az_global = a_global.z;
     }
 
 

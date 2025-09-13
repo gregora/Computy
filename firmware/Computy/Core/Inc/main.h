@@ -86,6 +86,7 @@ struct Packet{
   0 - manual
   1 - take-off
   2 - fly-by-wire
+  3 - automatic
 
   255 - recovery
   */
