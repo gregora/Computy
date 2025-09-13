@@ -68,6 +68,7 @@ int rx_i_gps = 0;
 char nmea_sentence[83]; // actual sentence
 
 GPS gps;
+char lastMeasure[10];
 
 uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum (circular buffer)
 uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -282,18 +283,20 @@ int main(void)
     // Parse GPS
 	nmea_parse(&gps, nmea_sentence);
 
-    if (gps.fix == 1){
-    	p.latitude = gps.latitude;
-    	p.longitude = gps.longitude;
-    	p.altitude = gps.altitude;
-    	p.satellites = gps.satelliteCount;
+	// Check if new measurement has been read
+    if (gps.fix == 1 && strcmp(gps.lastMeasure, lastMeasure) != 0){
+		strcpy(lastMeasure, gps.lastMeasure);
 
-    	// Calculate bearing from target position and current position
-    	bearing = RAD2DEG * atan2(
-    			sin((target_long - p.longitude) / RAD2DEG) * cos(target_lat / RAD2DEG),
+		p.latitude = gps.latitude;
+		p.longitude = gps.longitude;
+		p.altitude = gps.altitude;
+		p.satellites = gps.satelliteCount;
+
+		// Calculate bearing from target position and current position
+		bearing = RAD2DEG * atan2(
+				sin((target_long - p.longitude) / RAD2DEG) * cos(target_lat / RAD2DEG),
 				cos(p.latitude / RAD2DEG) * sin(target_lat / RAD2DEG) - sin(p.latitude / RAD2DEG) * cos(target_lat / RAD2DEG) * cos((target_long - p.longitude)/RAD2DEG)
-    	);
-
+		);
     }
 
     // Parse iBus
