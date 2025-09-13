@@ -171,25 +171,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-
-  if (error == HAL_I2C_ERROR_NONE) {
-
-  } else if (error == HAL_I2C_ERROR_BERR) {
-    printf("HAL_I2C_ERROR_BERR\r\n");
-  } else if (error == HAL_I2C_ERROR_ARLO) {
-    printf("HAL_I2C_ERROR_ARLO\r\n");
-  } else if (error == HAL_I2C_ERROR_AF) {
-    printf("HAL_I2C_ERROR_AF\r\n");
-  } else if (error == HAL_I2C_ERROR_OVR) {
-    printf("HAL_I2C_ERROR_OVR\r\n");
-  } else if (error == HAL_I2C_ERROR_DMA) {
-    printf("HAL_I2C_ERROR_DMA\r\n");
-  } else if (error == HAL_I2C_ERROR_TIMEOUT) {
-    printf("HAL_I2C_ERROR_TIMEOUT\r\n");
-  }
-
-
-
   HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
   HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
 
@@ -323,6 +304,22 @@ int main(void)
 		}
 	}
 
+	// Mode 3 - Automatic
+	else if (channels[4] == 1000 && channels[5] == 1000 && channels[6] == 1500 && (p.mode == 0 || p.mode == 3)){
+		p.mode = 3;
+
+		// Also enter recovery mode if attitude control sticks are not centered
+		if (channels[0] < 1400 || channels[0] > 1600){
+			p.mode = 255;
+		}
+		if (channels[1] < 1400 || channels[1] > 1600){
+			p.mode = 255;
+		}
+		if (channels[3] < 1400 || channels[3] > 1600){
+			p.mode = 255;
+		}
+	}
+
 	// Mode 255 - Recovery
 	else {
 		p.mode = 255;
@@ -335,8 +332,18 @@ int main(void)
 	    for (int i = 0; i < 7; i++){
 	    	p.channels[i] = channels[i];
 	    }
-	}else if (p.mode == 1){
+	} else if (p.mode == 1){
 		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0075f + (ang_vel.x)*0.0020f));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0100f - (ang_vel.y)*0.0020f));
+		p.channels[3] = RUDDER_TRIM;
+
+		// Map channels 4-7 directly
+		for(int i = 4; i < 7; i++){
+			p.channels[i] = channels[i];
+		}
+	} else if (p.mode == 3){
+		float roll_target = 0;
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG - roll_target)*0.0075f + (ang_vel.x)*0.0020f));
 		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0100f - (ang_vel.y)*0.0020f));
 		p.channels[3] = RUDDER_TRIM;
 
