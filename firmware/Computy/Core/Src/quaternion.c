@@ -19,3 +19,20 @@ struct Quaternion quaternion_multiply(struct Quaternion *q1, struct Quaternion *
 	return q3;
 
 }
+
+struct Quaternion quaternion_conjugate(struct Quaternion *q) {
+	struct Quaternion qc;
+	qc.w = q->w;
+	qc.x = -q->x;
+	qc.y = -q->y;
+	qc.z = -q->z;
+	return qc;
+}
+
+struct Quaternion quaternion_transform_vector(struct Quaternion *q, float v[3]) {
+	struct Quaternion v_as_quat = {0, v[0], v[1], v[2]};
+	struct Quaternion q_conj = quaternion_conjugate(q);
+	struct Quaternion temp = quaternion_multiply(q, &v_as_quat);
+	struct Quaternion result = quaternion_multiply(&temp, &q_conj);
+	return result;
+}

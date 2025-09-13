@@ -18,4 +18,8 @@ struct Quaternion {
 
 struct Quaternion quaternion_multiply(struct Quaternion *q1, struct Quaternion *q2);
 
+struct Quaternion quaternion_conjugate(struct Quaternion *q);
+
+struct Quaternion quaternion_transform_vector(struct Quaternion *q, float v[3]);
+
 #endif /* INC_QUATERNION_H_ */
