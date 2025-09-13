@@ -216,6 +216,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
+	float dt = ((float) (ms - p.time)) / 1000;
 	p.time = ms;
 
 	if(ms - last_transmission > 30){
