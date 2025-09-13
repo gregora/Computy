@@ -203,11 +203,25 @@ int main(void)
   status = TI_read_status(CCxxx0_VERSION); // it is for checking only
   uint32_t last_transmission = 0; // when was the last packet sent?
 
-  struct Quaternion quat_axis_remap = {0.0f, 1.0f, 0.0f, 0.0f};       // y -> -y, z -> -z
-  struct Quaternion quat_axis_remap_inv = {0.0f, -1.0f, 0.0f, 0.0f};
+  struct Quaternion quat_axis_remap =     {0.0,  1.0f, 0.0, 0.0}; //  z -> -z,  y -> -y
+  struct Quaternion quat_axis_remap_inv = {0.0, -1.0f, 0.0, 0.0}; // -z ->  z, -y ->  y
+  struct Quaternion quat_rotate_azimuth = {0.70710678118, 0, 0, 0.70710678118}; // rotate azimuth by 90 deg
   struct Quaternion quat_raw;
   struct Quaternion temp;
 
+  // Example target location: Ljubljana Castle
+  float target_lat = 46.048794785175716;
+  float target_long = 14.508673701361634;
+
+  // Example target location: Rijeka
+  //float target_lat = 45.3366306682363;
+  //float target_long = 14.395428799781492;
+
+  // Example target location: Vienna
+  // float target_lat = 48.205403696400346;
+  // float target_long = 16.394818810035325;
+
+  float bearing = 0.0f;
 
   while (1)
   {
@@ -240,8 +254,15 @@ int main(void)
 		// Transform vector into original space (a_inv), apply q, transform back into re-mapped space (a)
 		// a * q * a_inv
 		temp = quaternion_multiply(&quat_axis_remap, &quat_raw);
-		p.q = quaternion_multiply(&temp, &quat_axis_remap_inv);
-	    BNO055_QuaternionToEuler(&p.q, &euler);
+		temp = quaternion_multiply(&temp, &quat_axis_remap_inv);
+
+		// Rotate azimuth by 90 degrees, to align vector to NED
+		temp = quaternion_multiply(&quat_rotate_azimuth, &temp);
+
+		// Set quaternion
+		p.q = temp;
+
+		BNO055_QuaternionToEuler(&p.q, &euler);
 
 	}
 
@@ -269,6 +290,13 @@ int main(void)
     	p.longitude = gps.longitude;
     	p.altitude = gps.altitude;
     	p.satellites = gps.satelliteCount;
+
+    	// Calculate bearing from target position and current position
+    	bearing = RAD2DEG * atan2(
+    			sin((target_long - p.longitude) / RAD2DEG) * cos(target_lat / RAD2DEG),
+				cos(p.latitude / RAD2DEG) * sin(target_lat / RAD2DEG) - sin(p.latitude / RAD2DEG) * cos(target_lat / RAD2DEG) * cos((target_long - p.longitude)/RAD2DEG)
+    	);
+
     }
 
     // Parse iBus
@@ -303,6 +331,7 @@ int main(void)
 
 	// Respond to mode
 	if (p.mode == 0 || p.mode == 255){
+		// Map channels directly
 	    for (int i = 0; i < 7; i++){
 	    	p.channels[i] = channels[i];
 	    }
@@ -310,6 +339,11 @@ int main(void)
 		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0075f + (ang_vel.x)*0.0020f));
 		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0100f - (ang_vel.y)*0.0020f));
 		p.channels[3] = RUDDER_TRIM;
+
+		// Map channels 4-7 directly
+		for(int i = 4; i < 7; i++){
+			p.channels[i] = channels[i];
+		}
 	}
 
 	// Limit channel values
