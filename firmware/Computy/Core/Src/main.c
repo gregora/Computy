@@ -352,7 +352,7 @@ int main(void)
 	    	p.channels[i] = channels[i];
 	    }
 	} else if (p.mode == 1){
-		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0075f + (ang_vel.x)*0.0020f));
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0100f + (ang_vel.x)*0.0020f));
 		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0100f - (ang_vel.y)*0.0020f));
 		p.channels[3] = RUDDER_TRIM;
 
@@ -362,16 +362,16 @@ int main(void)
 		}
 	} else if (p.mode == 3){
 		// P controller for bearing
-		float roll_target = 0.33f * (fmod(bearing - euler.yaw*RAD2DEG + 180, 360) - 180.0f);
+		float roll_target = 0.50f * (fmod(bearing - euler.yaw*RAD2DEG + 180, 360) - 180.0f);
 
-		// Do not exceed 30 deg of roll
-		if (roll_target > 30) {
-			roll_target =  30;
-		}else if (roll_target < -30){
-			roll_target = -30;
+		// Do not exceed 40 deg of roll
+		if (roll_target > 40) {
+			roll_target =  40;
+		}else if (roll_target < -40){
+			roll_target = -40;
 		}
 
-		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG - roll_target)*0.0075f + (ang_vel.x)*0.0020f));
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG - roll_target)*0.0100f + (ang_vel.x)*0.0020f));
 		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0100f - (ang_vel.y)*0.0020f));
 		p.channels[3] = RUDDER_TRIM;
 
