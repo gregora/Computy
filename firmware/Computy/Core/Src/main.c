@@ -26,6 +26,7 @@
 #include "cc1101.h"
 #include "quaternion.h"
 #include "ibus.h"
+#include "coordinates.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,6 +75,9 @@ uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum (circular buffer)
 uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 struct Packet p;
+
+float target_lat = TARGET_LAT;
+float target_long = TARGET_LONG;
 
 
 /* USER CODE END PV */
@@ -197,17 +201,6 @@ int main(void)
   float ay_global = 0.0f;
   float az_global = 0.0f;
 
-  // Example target location: Ljubljana Castle
-  float target_lat = 46.048794785175716;
-  float target_long = 14.508673701361634;
-
-  // Example target location: Rijeka
-  //float target_lat = 45.3366306682363;
-  //float target_long = 14.395428799781492;
-
-  // Example target location: Vienna
-  // float target_lat = 48.205403696400346;
-  // float target_long = 16.394818810035325;
 
   float bearing = 0.0f;
 
