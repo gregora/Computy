@@ -99,3 +99,8 @@ release
 *.su
 *.idb
 *.pdb
+
+### Other
+
+# Private coordinate files
+firmware/Computy/Core/Inc/coordinates.h
