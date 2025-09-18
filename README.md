@@ -32,3 +32,8 @@ MCU is programmed with CubeIDE. Full project is located in `firmware/Computy`.
 
 - **[stm32-nmea-gps-hal](https://github.com/sztvka/stm32-nmea-gps-hal)** (**modified** and **included**)
 
+
+### Setup
+
+Before you can build and upload the project to your Computy board, you have to create a `coordinates.h` header file in `firmware/Computy/Core/Inc` in which you have to define `TARGET_LAT` and `TARGET_LONG` variables.
+Because the geolocation is sensitive, this file is included in `.gitignore` and is thus hidden.
