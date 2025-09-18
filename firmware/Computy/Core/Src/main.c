@@ -42,12 +42,6 @@
 #define AILERON_TRIM  (int16_t)1437
 #define RUDDER_TRIM   (int16_t)1462
 
-#ifndef TARGET_LAT
-    // Example: Ljubljana Castle
-    #define TARGET_LAT 46.048794785175716
-    #define TARGET_LONG 14.508673701361634
-#endif
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
