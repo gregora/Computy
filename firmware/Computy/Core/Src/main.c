@@ -27,6 +27,7 @@
 #include "quaternion.h"
 #include "ibus.h"
 #include "coordinates.h"
+#include "arm_math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
