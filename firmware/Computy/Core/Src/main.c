@@ -27,7 +27,9 @@
 #include "quaternion.h"
 #include "ibus.h"
 #include "coordinates.h"
+#define ARM_MATH_CM4
 #include "arm_math.h"
+#include "kalman.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,6 +122,8 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
+  kalman_init();
 
   /* USER CODE END Init */
 
