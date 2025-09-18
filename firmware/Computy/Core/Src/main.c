@@ -27,9 +27,8 @@
 #include "quaternion.h"
 #include "ibus.h"
 #include "coordinates.h"
-#define ARM_MATH_CM4
+#define ARM_MATH_CM3
 #include "arm_math.h"
-#include "kalman.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -83,6 +82,18 @@ float target_lat = TARGET_LAT;
 float target_long = TARGET_LONG;
 
 
+// Define two 2x2 matrices
+float32_t dataA[4] = {1.0f, 2.0f,
+                       3.0f, 4.0f};
+float32_t dataB[4] = {5.0f, 6.0f,
+                       7.0f, 8.0f};
+float32_t dataC[4]; // output 2x2
+
+// Matrix handles
+arm_matrix_instance_f32 A, B, C;
+
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -122,8 +133,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
-  kalman_init();
 
   /* USER CODE END Init */
 
@@ -173,6 +182,17 @@ int main(void)
   {
       // Handle error
   }
+
+  arm_matrix_instance_f32 A, B, C;
+  float data1[4] = {1, 2, 3, 4};
+  float data2[4] = {1, 2, 3, 4};
+  float data3[4] = {0, 0, 0, 0};
+
+  arm_mat_init_f32(&A, 2, 2, data1);
+  arm_mat_init_f32(&B, 2, 2, data2);
+  arm_mat_init_f32(&C, 2, 2, data3);
+
+  arm_mat_mult_f32(&A, &B, &C);
 
   uint32_t error;
 
