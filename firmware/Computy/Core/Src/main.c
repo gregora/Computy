@@ -29,6 +29,7 @@
 #include "coordinates.h"
 #define ARM_MATH_CM3
 #include "arm_math.h"
+#include "kalman.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -183,17 +184,6 @@ int main(void)
       // Handle error
   }
 
-  arm_matrix_instance_f32 A, B, C;
-  float data1[4] = {1, 2, 3, 4};
-  float data2[4] = {1, 2, 3, 4};
-  float data3[4] = {0, 0, 0, 0};
-
-  arm_mat_init_f32(&A, 2, 2, data1);
-  arm_mat_init_f32(&B, 2, 2, data2);
-  arm_mat_init_f32(&C, 2, 2, data3);
-
-  arm_mat_mult_f32(&A, &B, &C);
-
   uint32_t error;
 
   /* USER CODE END 2 */
@@ -226,6 +216,7 @@ int main(void)
   float ay_global = 0.0f;
   float az_global = 0.0f;
 
+  kalman_init();
 
   float bearing = 0.0f;
 
