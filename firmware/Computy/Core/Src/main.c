@@ -282,6 +282,11 @@ int main(void)
     	ax_global = a_global.x;
     	ay_global = a_global.y;
     	az_global = a_global.z;
+
+    	kalman_predict(dt, ax_global, ay_global, az_global);
+    	float kalman_latitude, kalman_longitude, kalman_height;
+    	kalman_result(&kalman_latitude, &kalman_longitude, &kalman_height);
+
     }
 
 
@@ -296,10 +301,13 @@ int main(void)
     if (gps.fix == 1 && strcmp(gps.lastMeasure, lastMeasure) != 0){
 		strcpy(lastMeasure, gps.lastMeasure);
 
+
 		p.latitude = gps.latitude;
 		p.longitude = gps.longitude;
 		p.altitude = gps.altitude;
 		p.satellites = gps.satelliteCount;
+
+		kalman_update(gps.latitude, gps.longitude, gps.altitude);
 
 		// Calculate bearing from target position and current position
 		bearing = RAD2DEG * atan2(
