@@ -287,6 +287,10 @@ int main(void)
     	float kalman_latitude, kalman_longitude, kalman_height;
     	kalman_result(&kalman_latitude, &kalman_longitude, &kalman_height);
 
+    	p.latitude = kalman_latitude;
+    	p.longitude = kalman_longitude;
+    	p.altitude = kalman_height;
+
     }
 
 
