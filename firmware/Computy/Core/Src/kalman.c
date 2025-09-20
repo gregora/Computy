@@ -105,7 +105,7 @@ void kalman_predict(float dt, float ax, float ay, float az) {
 
 	if(latitude0 == 0 && longitude0 == 0){
 		// Ignore prediction update if initial gps position was established
-		//return;
+		return;
 	}
 
 	// predict new values

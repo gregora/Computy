@@ -277,11 +277,19 @@ int main(void)
     	float raw_accel[3] = {p.ax, p.ay, p.az};
 
     	// Calculate acceleration in global coordinates
-    	struct Quaternion a_global = quaternion_transform_vector(&p.q, raw_accel);
+		temp = quaternion_multiply(&quat_axis_remap, &quat_raw);
+		temp = quaternion_multiply(&quat_rotate_azimuth, &temp);
+
+
+    	struct Quaternion a_global = quaternion_transform_vector(&temp, raw_accel);
 
     	ax_global = a_global.x;
     	ay_global = a_global.y;
     	az_global = a_global.z;
+
+    	p.ax = ax_global;
+    	p.ay = ay_global;
+    	p.az = az_global;
 
     	kalman_predict(dt, ax_global, ay_global, az_global);
     	float kalman_latitude, kalman_longitude, kalman_height;
@@ -306,9 +314,9 @@ int main(void)
 		strcpy(lastMeasure, gps.lastMeasure);
 
 
-		p.latitude = gps.latitude;
-		p.longitude = gps.longitude;
-		p.altitude = gps.altitude;
+		//p.latitude = gps.latitude;
+		//p.longitude = gps.longitude;
+		//p.altitude = gps.altitude;
 		p.satellites = gps.satelliteCount;
 
 		kalman_update(gps.latitude, gps.longitude, gps.altitude);
