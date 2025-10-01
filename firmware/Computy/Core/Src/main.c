@@ -382,7 +382,7 @@ int main(void)
 	    }
 	} else if (p.mode == 1){
 		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0100f + (ang_vel.x)*0.0020f));
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0100f - (ang_vel.y)*0.0020f));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0150f - (ang_vel.y)*0.0030f));
 		p.channels[3] = RUDDER_TRIM;
 
 		// Map channels 4-7 directly
@@ -400,8 +400,15 @@ int main(void)
 			roll_target = -40;
 		}
 
+		float pitch_factor = cos(euler.roll);
+		if (pitch_factor < 0.3){
+			pitch_factor = 0.3;
+		}
+
+		float pitch_target = 10.0f + 50.0f * (1 - pitch_factor);
+
 		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG - roll_target)*0.0100f + (ang_vel.x)*0.0020f));
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0100f - (ang_vel.y)*0.0020f));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - pitch_target)*0.0150f - (ang_vel.y)*0.0030f));
 		p.channels[3] = RUDDER_TRIM;
 
 		// Map channels 4-7 directly
