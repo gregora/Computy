@@ -79,8 +79,10 @@ uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 struct Packet p;
 
-float target_lat = TARGET_LAT;
-float target_long = TARGET_LONG;
+int16_t target_index = 0;
+
+float target_lat = 0;
+float target_long = 0;
 
 
 // Define two 2x2 matrices
@@ -320,6 +322,20 @@ int main(void)
 		p.satellites = gps.satelliteCount;
 
 		kalman_update(gps.latitude, gps.longitude, gps.altitude);
+
+		target_lat = latitudes[target_index];
+		target_long = longitudes[target_index];
+
+		// Calculate distance from target position
+		float delta_x = (target_lat  - p.latitude)  / 360.0f * EARTH_CIRCUMFERENCE;
+		float delta_y = (target_long - p.longitude) / 360.0f * EARTH_CIRCUMFERENCE * cos(target_lat / 180.0f * 3.1415);
+
+		float distance_to_target = sqrt(delta_x*delta_x + delta_y*delta_y);
+
+		// Objective complete if the aircraft is within 20m
+		if (distance_to_target < 30.0f){
+			target_index = (target_index + 1) % num_points;
+		}
 
 		// Calculate bearing from target position and current position
 		bearing = RAD2DEG * atan2(
