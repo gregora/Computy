@@ -42,8 +42,8 @@
 #define RAD2DEG  180.0f / 3.1415f
 
 #define ELEVATOR_TRIM (int16_t)1472
-#define AILERON_TRIM  (int16_t)1437
-#define RUDDER_TRIM   (int16_t)1462
+#define AILERON_TRIM  (int16_t)1472
+#define RUDDER_TRIM   (int16_t)1381
 
 /* USER CODE END PD */
 
@@ -357,13 +357,13 @@ int main(void)
 		p.mode = 1;
 
 		// Also enter recovery mode if attitude control sticks are not centered
-		if (channels[0] < 1400 || channels[0] > 1600){
+		if (abs(channels[0] - AILERON_TRIM) > 100){
 			p.mode = 255;
 		}
-		if (channels[1] < 1400 || channels[1] > 1600){
+		if (abs(channels[1] - ELEVATOR_TRIM) > 100){
 			p.mode = 255;
 		}
-		if (channels[3] < 1400 || channels[3] > 1600){
+		if 	(abs(channels[3] - RUDDER_TRIM) > 100){
 			p.mode = 255;
 		}
 	}
@@ -373,13 +373,13 @@ int main(void)
 		p.mode = 3;
 
 		// Also enter recovery mode if attitude control sticks are not centered
-		if (channels[0] < 1400 || channels[0] > 1600){
+		if (abs(channels[0] - AILERON_TRIM) > 100){
 			p.mode = 255;
 		}
-		if (channels[1] < 1400 || channels[1] > 1600){
+		if (abs(channels[1] - ELEVATOR_TRIM) > 100){
 			p.mode = 255;
 		}
-		if (channels[3] < 1400 || channels[3] > 1600){
+		if (abs(channels[3] - RUDDER_TRIM) > 100){
 			p.mode = 255;
 		}
 	}
@@ -397,8 +397,8 @@ int main(void)
 	    	p.channels[i] = channels[i];
 	    }
 	} else if (p.mode == 1){
-		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0100f + (ang_vel.x)*0.0020f));
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0150f - (ang_vel.y)*0.0030f));
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0110f + (ang_vel.x)*0.0022f));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0200f - (ang_vel.y)*0.0040f));
 		p.channels[3] = RUDDER_TRIM;
 
 		// Map channels 4-7 directly
@@ -407,13 +407,13 @@ int main(void)
 		}
 	} else if (p.mode == 3){
 		// P controller for bearing
-		float roll_target = 0.50f * (fmod(bearing - euler.yaw*RAD2DEG + 180, 360) - 180.0f);
+		float roll_target = 0.75f * (fmod(bearing - euler.yaw*RAD2DEG + 180, 360) - 180.0f);
 
-		// Do not exceed 40 deg of roll
-		if (roll_target > 40) {
-			roll_target =  40;
-		}else if (roll_target < -40){
-			roll_target = -40;
+		// Do not exceed 50 deg of roll
+		if (roll_target > 50) {
+			roll_target =  50;
+		}else if (roll_target < -50){
+			roll_target = -50;
 		}
 
 		float pitch_factor = cos(euler.roll);
@@ -421,10 +421,10 @@ int main(void)
 			pitch_factor = 0.3;
 		}
 
-		float pitch_target = 10.0f + 50.0f * (1 - pitch_factor);
+		float pitch_target = 4.0f + 50.0f * (1 - pitch_factor);
 
-		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG - roll_target)*0.0100f + (ang_vel.x)*0.0020f));
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - pitch_target)*0.0150f - (ang_vel.y)*0.0030f));
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  roll_target)*0.0110f + (ang_vel.x)*0.0022f));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - pitch_target)*0.0200f - (ang_vel.y)*0.0040f));
 		p.channels[3] = RUDDER_TRIM;
 
 		// Map channels 4-7 directly
