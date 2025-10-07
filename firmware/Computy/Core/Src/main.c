@@ -407,7 +407,7 @@ int main(void)
 		}
 	} else if (p.mode == 3){
 		// P controller for bearing
-		float roll_target = 0.75f * (fmod(bearing - euler.yaw*RAD2DEG + 180, 360) - 180.0f);
+		float roll_target = 1.00f * (fmod(bearing - euler.yaw*RAD2DEG + 180, 360) - 180.0f);
 
 		// Do not exceed 50 deg of roll
 		if (roll_target > 50) {
