@@ -104,3 +104,6 @@ release
 
 # Private coordinate files
 firmware/Computy/Core/Inc/coordinates.h
+
+# flight data
+firmware/ground/flights/

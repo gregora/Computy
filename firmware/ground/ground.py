@@ -2,6 +2,11 @@ import pygame
 import serial
 import struct
 import math
+import copy
+import numpy as np
+import pandas as pd
+import time
+from datetime import datetime
 
 port = '/dev/ttyUSB0'  # Replace with your serial port
 baudrate = 57600
@@ -9,7 +14,22 @@ baudrate = 57600
 packet_start = b'ab'
 
 hide_location = False
+recording = False
+last_packet_time = time.time()
 
+columns=["Time", "Yaw", "Pitch", "Roll", "q1", "q2", "q3", "q4", "ax", "ay", "az", "Latitude", "Longitude", "Altitude", "Satellites"]
+
+for i in range(7):
+    columns.append("Channel_" + str(i))
+
+columns.append("Mode")
+
+saved_packets = pd.DataFrame()
+
+now = datetime.now()
+dt_string = now.strftime("%Y_%m_%d_%H:%M")
+file_name = "flights/" + dt_string + ".csv"
+print("Saving data to: ", file_name)
 
 def quat2ZYX(w, x, y, z):
     # Convert quaternion to ZYX Euler angles (yaw, pitch, roll)
@@ -92,6 +112,8 @@ class Packet:
 
 p = Packet()
 
+history = []
+
 with serial.Serial(port, baudrate, timeout=1) as ser:
 
     pygame.init()
@@ -133,7 +155,7 @@ with serial.Serial(port, baudrate, timeout=1) as ser:
         screen.blit(text, (10, 35))
 
         text = font.render("Roll: " + str(round(roll, 2)), True, (255, 255, 255))
-        screen.blit(text, (10, 85))
+        screen.blit(text, (10, 60))
 
         text = font.render("ax: " + str(round(p.ax, 2)), True, (255, 255, 255))
         screen.blit(text, (10, 110))
@@ -181,6 +203,116 @@ with serial.Serial(port, baudrate, timeout=1) as ser:
             text = font.render(str(i), True, (255, 255, 255))
             screen.blit(text, (width + (i - 14) * 15 - 10, 270))
 
+            # flight mode
+            if p.mode == 0:
+                text = font_middle.render("Manual mode", True, (255, 255, 255))
+            elif p.mode == 1:
+                text = font_middle.render("Take-off mode", True, (17, 91, 212))
+            elif p.mode == 2:
+                text = font_middle.render("Fly-by-wire mode", True, (8, 138, 47))
+            elif p.mode == 3:
+                text = font_middle.render("Automatic mode", True, (255, 165, 0))
+            elif p.mode == 255:
+                text = font_middle.render("Recovery mode", True, (140, 0, 14))
+
+            # get the width of the text
+            text_rect = text.get_rect()
+            screen.blit(text, (width - 115 - text_rect.width / 2, 15))
+
+
+
+
+            ### Artificial horizon ###
+
+            pitch_frac = pitch / 60
+
+            if(abs(pitch_frac) > 1):
+                pitch_frac /= abs(pitch_frac)
+
+            pitch_frac = 0.5 + pitch_frac * 0.5
+
+            pygame.draw.rect(screen, (30, 30, 30), (width / 2 - 205, height / 2 - 55, 410, 410))
+            pygame.draw.rect(screen, (0, 125, 227), (width / 2 - 200, height / 2 - 50, 400, 400 * pitch_frac))
+            pygame.draw.rect(screen, (94, 42, 0), (width / 2 - 200, height / 2 - 50 + 400 * pitch_frac, 400, 400 * (1 - pitch_frac)))
+
+
+            # scale the marker
+            marker = pygame.transform.scale(marker_image, (200, 16))
+            # rotate the marker   
+            marker = pygame.transform.rotate(marker, - roll)
+            marker_rect = marker.get_rect()
+            screen.blit(marker, (width / 2 - marker_rect.width/2, height / 2 + 200 - 50 - marker_rect.height/2))
+
+            # render G-force
+            g_force = (p.ax**2 + p.ay**2 + p.az**2)**0.5
+            g_force = round(g_force / 10, 1)
+
+            text = font.render(str(g_force) + " g", True, (245, 230, 66))
+            screen.blit(text, (width / 2 - 190, height / 2 - 70 + 400))
+
+
+
+
+            ### Minimap ###
+
+            # render position
+            pygame.draw.rect(screen, (20, 20, 20), (10, height / 2 - 30, 370, 370))
+
+            line = []
+
+            # get average position
+            if len(history) > 1:
+                avg_pos = np.array([0.0, 0.0])
+                packets_with_location = 0
+                for h in history[-10000::5]:
+                    # check if data is valid
+                    if h.latitude <= 0.1 and h.longitude <= 0.1:
+                        continue
+                    packets_with_location += 1
+
+                    avg_pos += np.array([h.latitude, h.longitude])
+                    line.append([h.latitude, h.longitude])
+                if packets_with_location == 0:
+                    packets_with_location = 1
+                avg_pos /= packets_with_location
+                
+                map_scale_lat = 40075 / 360  # full width at 1 km
+                map_scale_long = 40075 / 360 * np.cos(avg_pos[0] * 3.1415 / 180) # full height at 1 km
+
+                for l in line:
+                    l[0] = int(10 + 370/2 + 370 * (l[0] - avg_pos[1]) * map_scale_long)
+                    l[1] = int(height / 2 - 30 + 370/2 - 370 * (l[1] - avg_pos[0]) * map_scale_lat)
+
+                if len(line) > 2:
+                    pygame.draw.lines(screen, (255, 255, 255), False, line, 1)
+
+                # render marker
+                pygame.draw.circle(screen, (255, 0, 0), (int(10 + 370/2 + 370 * (p.longitude - avg_pos[1]) * map_scale_long), int(height / 2 - 30 + 370/2 - 370 * (p.latitude - avg_pos[0]) * map_scale_lat)), 3)
+        
+            if(time.time() - last_packet_time > 1):
+                # render a red circle
+                pygame.draw.circle(screen, (255, 0, 0), (width/2, 40), 20)
+            else:
+                # render a green circle
+                pygame.draw.circle(screen, (0, 255, 0), (width/2, 40), 20)
+
+
+            if recording:
+                pygame.draw.rect(screen, (20, 20, 20), record_button)
+                # draww two vertical lines
+                pygame.draw.line(screen, (255, 255, 255), (width//2 + 75, 25), (width//2 + 75, 55), 5)
+                pygame.draw.line(screen, (255, 255, 255), (width//2 + 95, 25), (width//2 + 95, 55), 5)
+                # add small text under the button
+                font = pygame.font.Font(None, 18)
+                text = font.render("Recording", True, (255, 255, 255))
+                screen.blit(text, (width//2 + 55, 75))
+            else:
+                pygame.draw.rect(screen, (40, 40, 40), record_button)
+                # draw a triangle
+                pygame.draw.polygon(screen, (255, 255, 255), [(width//2 + 75, 30), (width//2 + 75, 50), (width//2 + 95, 40)])
+
+
+
         pygame.display.flip()
 
         for event in pygame.event.get():
@@ -196,8 +328,12 @@ with serial.Serial(port, baudrate, timeout=1) as ser:
 
         width, height = screen.get_size()
 
-        # Read the start bytes
 
+
+
+
+
+        # Read the start bytes
         if ser.read(1) != packet_start[0:1]:
             continue
 
@@ -210,16 +346,25 @@ with serial.Serial(port, baudrate, timeout=1) as ser:
             packet_data = ser.read(packet_size)
             #print(packet_data)
             p.read(packet_data)
+
+            history.append(copy.deepcopy(p))
+
+            if recording:
+                data = [p.time, yaw, pitch, roll, p.w, p.x, p.y, p.z, p.ax, p.ay, p.az, p.latitude, p.longitude, p.altitude, p.sattelites]
+
+                data += p.channels
+                data.append(p.mode)
+
+                saved_packets = pd.concat([saved_packets, pd.DataFrame([data], columns=columns)], ignore_index=True)
+
+            last_packet_time = time.time()
         except KeyboardInterrupt:
             exit(0)
         except:
             print(f"Error reading from serial")
             continue
 
-
-
-
-        print(p)
+        #print(p)
 
         if len(packet_data) == packet_size:
             continue
@@ -228,3 +373,9 @@ with serial.Serial(port, baudrate, timeout=1) as ser:
 
 
     pygame.quit()
+
+    if len(saved_packets) > 0:
+        try:
+            saved_packets.to_csv(file_name, index=False)
+        except:
+            saved_packets.to_csv(file_name.replace("flights/", ""), index=False)
