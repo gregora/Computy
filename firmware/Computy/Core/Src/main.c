@@ -63,6 +63,7 @@ TIM_HandleTypeDef htim8;
 
 UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart6;
 DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
@@ -110,6 +111,7 @@ static void MX_TIM3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -156,17 +158,14 @@ int main(void)
   MX_USART1_UART_Init();
   MX_SPI1_Init();
   MX_TIM2_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
 
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
-
-  TIM8->CCR1 = 1500;
-  TIM3->CCR2 = 2000;
 
   HAL_TIM_Base_Start(&htim2);  // Start TIM2 in polling mode
 
@@ -231,14 +230,17 @@ int main(void)
 	float dt = ((float) (ms - p.time)) / 1000;
 	p.time = ms;
 
-	if(ms - last_transmission > 30){
-	    TI_strobe(CCxxx0_SFTX); // flush the buffer
-	    status = TI_read_status(CCxxx0_TXBYTES);
-	    TI_send_packet((void*) &p, sizeof(struct Packet));
+	if(ms - last_transmission >= 30){
+	    //p.time = ms - last_transmission;
+
 	    last_transmission = ms;
+
+	    char packet_start[] = {'a', 'b'};
+		HAL_UART_Transmit(&huart6, packet_start, 2, 5);
+	    HAL_UART_Transmit(&huart6, (uint8_t*) &p, sizeof(p), 15);
 	}
 
-    HAL_Delay(3);
+    HAL_Delay(0);
 
     status = TI_read_status(CCxxx0_TXBYTES);
     marcstate = TI_read_status(CCxxx0_MARCSTATE);
@@ -444,13 +446,12 @@ int main(void)
 	}
 
     // Apply actuation values
-	TIM8->CCR1 = p.channels[0] - 500;
-    TIM8->CCR2 = p.channels[1] - 500;
-    TIM8->CCR3 = p.channels[2] - 500;
-    TIM8->CCR4 = p.channels[3] - 500;
+    TIM8->CCR2 = p.channels[0] - 500;
+    TIM8->CCR3 = p.channels[1] - 500;
+    TIM8->CCR4 = p.channels[2] - 500;
 
-    TIM3->CCR1 = p.channels[4] - 500;
-    TIM3->CCR2 = p.channels[5] - 500;
+    TIM3->CCR1 = p.channels[3] - 500;
+    TIM3->CCR2 = p.channels[4] - 500;
 
 
 
@@ -721,17 +722,12 @@ static void MX_TIM8_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 1500;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.Pulse = 1500;
   if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
@@ -829,6 +825,39 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * @brief USART6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART6_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART6_Init 0 */
+
+  /* USER CODE END USART6_Init 0 */
+
+  /* USER CODE BEGIN USART6_Init 1 */
+
+  /* USER CODE END USART6_Init 1 */
+  huart6.Instance = USART6;
+  huart6.Init.BaudRate = 57600;
+  huart6.Init.WordLength = UART_WORDLENGTH_8B;
+  huart6.Init.StopBits = UART_STOPBITS_1;
+  huart6.Init.Parity = UART_PARITY_NONE;
+  huart6.Init.Mode = UART_MODE_TX_RX;
+  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_HalfDuplex_Init(&huart6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART6_Init 2 */
+
+  /* USER CODE END USART6_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -872,6 +901,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
+  __HAL_RCC_USART6_CLK_ENABLE();
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
