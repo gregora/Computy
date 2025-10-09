@@ -1,4 +1,5 @@
 import pygame
+import pygame.gfxdraw
 import serial
 import struct
 import math
@@ -123,7 +124,8 @@ with serial.Serial(port, baudrate, timeout=1) as ser:
     height = 800
     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
 
-    marker_image = pygame.image.load("marker.png")
+    marker_image = pygame.image.load("textures/marker.png")
+    location_bug_image = pygame.image.load("textures/location_bug.png")
 
     last_packet_time = 0
 
@@ -286,9 +288,21 @@ with serial.Serial(port, baudrate, timeout=1) as ser:
                 if len(line) > 2:
                     pygame.draw.lines(screen, (255, 255, 255), False, line, 1)
 
-                # render marker
+                # render bug
                 pygame.draw.circle(screen, (255, 0, 0), (int(10 + 370/2 + 370 * (p.longitude - avg_pos[1]) * map_scale_long), int(height / 2 - 30 + 370/2 - 370 * (p.latitude - avg_pos[0]) * map_scale_lat)), 3)
-        
+                    # scale the marker
+                bug = pygame.transform.smoothscale(location_bug_image, (15, 15))
+                # rotate the marker   
+                bug = pygame.transform.rotozoom(bug, -yaw, 1.0)
+                bug_rect = bug.get_rect()
+
+                screen.blit(bug, (
+                    int(10 + 370/2 + 370 * (p.longitude - avg_pos[1]) * map_scale_long - bug_rect.width/2),
+                    int(height / 2 - 30 + 370/2 - 370 * (p.latitude - avg_pos[0]) * map_scale_lat) - bug_rect.height/2)
+                    )
+
+
+
             if(time.time() - last_packet_time > 1):
                 # render a red circle
                 pygame.draw.circle(screen, (255, 0, 0), (width/2, 40), 20)
