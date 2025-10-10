@@ -326,13 +326,18 @@ while running:
                 # check if data is valid
                 if h.latitude <= 0.1 and h.longitude <= 0.1:
                     continue
+
+                if abs(h.latitude) > 180 or abs(h.longitude) > 180:
+                    continue
+
                 packets_with_location += 1
 
                 avg_pos += np.array([h.latitude, h.longitude])
                 line.append([h.latitude, h.longitude])
             if packets_with_location == 0:
-                packets_with_location = 1
-            avg_pos /= packets_with_location
+                avg_pos = np.array([0.0, 0.0])
+            else:
+                avg_pos /= packets_with_location
             
             map_scale_lat = 40075 / 360  # full width at 1 km
             map_scale_long = 40075 / 360 * np.cos(avg_pos[0] * 3.1415 / 180) # full height at 1 km
@@ -350,10 +355,11 @@ while running:
             bug = pygame.transform.rotozoom(bug, -yaw, 1.0)
             bug_rect = bug.get_rect()
 
-            screen.blit(bug, (
-                int(10 + 370/2 + 370 * (p.longitude - avg_pos[1]) * map_scale_long - bug_rect.width/2),
-                int(height / 2 - 30 + 370/2 - 370 * (p.latitude - avg_pos[0]) * map_scale_lat) - bug_rect.height/2)
-                )
+            if abs(p.latitude) < 180 and abs(p.longitude) < 180:   
+                screen.blit(bug, (
+                    int(10 + 370/2 + 370 * (p.longitude - avg_pos[1]) * map_scale_long - bug_rect.width/2),
+                    int(height / 2 - 30 + 370/2 - 370 * (p.latitude - avg_pos[0]) * map_scale_lat) - bug_rect.height/2)
+                    )
 
 
 

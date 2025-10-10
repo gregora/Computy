@@ -230,14 +230,14 @@ int main(void)
 	float dt = ((float) (ms - p.time)) / 1000;
 	p.time = ms;
 
-	if(ms - last_transmission >= 15){
+	if(ms - last_transmission >= 150){
 	    //p.time = ms - last_transmission;
 
 	    last_transmission = ms;
 
 	    char packet_start[] = {'a', 'b'};
-		HAL_UART_Transmit(&huart6, packet_start, 2, 5);
-	    HAL_UART_Transmit(&huart6, (uint8_t*) &p, sizeof(p), 12);
+		  HAL_UART_Transmit(&huart6, packet_start, 2, 5);
+	    HAL_UART_Transmit(&huart6, (uint8_t*) &p, sizeof(p), 15);
 	}
 
     HAL_Delay(0);
