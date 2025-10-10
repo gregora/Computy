@@ -78,6 +78,7 @@ char lastMeasure[10];
 uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum (circular buffer)
 uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+char packet_start[] = {'a', 'b'};
 struct Packet p;
 
 int16_t target_index = 0;
@@ -230,14 +231,11 @@ int main(void)
 	float dt = ((float) (ms - p.time)) / 1000;
 	p.time = ms;
 
-	if(ms - last_transmission >= 150){
-	    //p.time = ms - last_transmission;
-
+	if(ms - last_transmission >= 100){
 	    last_transmission = ms;
 
-	    char packet_start[] = {'a', 'b'};
-		  HAL_UART_Transmit(&huart6, packet_start, 2, 5);
-	    HAL_UART_Transmit(&huart6, (uint8_t*) &p, sizeof(p), 15);
+		  HAL_UART_Transmit(&huart6, packet_start, 2, 10);
+	    HAL_UART_Transmit(&huart6, (uint8_t*) &p, sizeof(p), 100);
 	}
 
     HAL_Delay(0);
