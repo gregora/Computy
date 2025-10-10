@@ -232,10 +232,14 @@ int main(void)
 	p.time = ms;
 
 	if(ms - last_transmission >= 100){
-	    last_transmission = ms;
 
-		  HAL_UART_Transmit(&huart6, packet_start, 2, 10);
-	    HAL_UART_Transmit(&huart6, (uint8_t*) &p, sizeof(p), 100);
+	    uint8_t tx_buffer[2 + sizeof(p)];
+	    memcpy(tx_buffer, packet_start, 2);
+	    memcpy(tx_buffer + 2, &p, sizeof(p));
+
+	    HAL_UART_Transmit(&huart6, tx_buffer, sizeof(tx_buffer), 100);
+
+	    last_transmission = ms;
 	}
 
     HAL_Delay(0);
