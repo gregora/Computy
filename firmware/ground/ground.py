@@ -126,17 +126,17 @@ def receive_thread():
     with serial.Serial(port, baudrate, timeout=1) as ser:
         while True:
 
-            # Read the start bytes
-            if ser.read(1) != packet_start[0:1]:
-                continue
-
-            if ser.read(1) != packet_start[1:2]:
-                continue
-
-            # Read the rest of the packet (assuming fixed size for simplicity)
-            packet_size = 60  # Adjust based on actual packet size
-            
             try:
+                # Read the start bytes
+                if ser.read(1) != packet_start[0:1]:
+                    continue
+
+                if ser.read(1) != packet_start[1:2]:
+                    continue
+
+                # Read the rest of the packet (assuming fixed size for simplicity)
+                packet_size = 60  # Adjust based on actual packet size
+                
                 packet_data = ser.read(packet_size)
 
                 #print(packet_data)
