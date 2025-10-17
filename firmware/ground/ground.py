@@ -126,18 +126,26 @@ def receive_thread():
     with serial.Serial(port, baudrate, timeout=1) as ser:
         while True:
 
-            try:
-                # Read the start bytes
-                if ser.read(1) != packet_start[0:1]:
-                    continue
+            # Read the start bytes
+            ch1 = ser.read(1)
 
-                if ser.read(1) != packet_start[1:2]:
-                    continue
+            if ch1 != packet_start[0:1]:
+                continue
+
+            ch2 = ser.read(1)
+
+            if ch2 != packet_start[1:2]:
+                continue
 
                 # Read the rest of the packet (assuming fixed size for simplicity)
                 packet_size = 60  # Adjust based on actual packet size
                 
                 packet_data = ser.read(packet_size)
+
+                # check that ab was not in the packet data
+                if packet_start in packet_data:
+                    print("Packet start found in packet data, discarding packet")
+                    continue
 
                 #print(packet_data)
                 p.read(packet_data)

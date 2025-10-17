@@ -78,7 +78,6 @@ char lastMeasure[10];
 uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum (circular buffer)
 uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-char packet_start[] = {'a', 'b'};
 struct Packet p;
 
 int16_t target_index = 0;
@@ -196,14 +195,6 @@ int main(void)
   HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
   HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
 
-  uint8_t status;
-  uint8_t marcstate;
-
-  Power_up_reset();
-
-  TI_init(&hspi1, GPIOB, GPIO_PIN_6);
-
-  status = TI_read_status(CCxxx0_VERSION); // it is for checking only
   uint32_t last_transmission = 0; // when was the last packet sent?
 
   // Axis remap necessary transformations
@@ -222,6 +213,11 @@ int main(void)
 
   float bearing = 0.0f;
 
+  uint8_t tx_buffer[2 + sizeof(p)];
+  // packet header
+  tx_buffer[0] = 'a';
+  tx_buffer[1] = 'b';
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -233,19 +229,10 @@ int main(void)
 
 	if(ms - last_transmission >= 100){
 
-	    uint8_t tx_buffer[2 + sizeof(p)];
-	    memcpy(tx_buffer, packet_start, 2);
 	    memcpy(tx_buffer + 2, &p, sizeof(p));
-
 	    HAL_UART_Transmit(&huart6, tx_buffer, sizeof(tx_buffer), 100);
-
 	    last_transmission = ms;
 	}
-
-    HAL_Delay(0);
-
-    status = TI_read_status(CCxxx0_TXBYTES);
-    marcstate = TI_read_status(CCxxx0_MARCSTATE);
 
 	if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
 	{
@@ -297,13 +284,13 @@ int main(void)
     	p.ay = ay_global;
     	p.az = az_global;
 
-    	kalman_predict(dt, ax_global, ay_global, az_global);
-    	float kalman_latitude, kalman_longitude, kalman_height;
-    	kalman_result(&kalman_latitude, &kalman_longitude, &kalman_height);
+    	//kalman_predict(dt, ax_global, ay_global, az_global);
+    	//float kalman_latitude, kalman_longitude, kalman_height;
+    	//kalman_result(&kalman_latitude, &kalman_longitude, &kalman_height);
 
-    	p.latitude = kalman_latitude;
-    	p.longitude = kalman_longitude;
-    	p.altitude = kalman_height;
+    	//p.latitude = kalman_latitude;
+    	//p.longitude = kalman_longitude;
+    	//p.altitude = kalman_height;
 
     }
 
@@ -320,12 +307,13 @@ int main(void)
 		strcpy(lastMeasure, gps.lastMeasure);
 
 
-		//p.latitude = gps.latitude;
-		//p.longitude = gps.longitude;
-		//p.altitude = gps.altitude;
+		p.latitude = gps.latitude;
+		p.longitude = gps.longitude;
+		p.altitude = gps.altitude;
 		p.satellites = gps.satelliteCount;
 
-		kalman_update(gps.latitude, gps.longitude, gps.altitude);
+
+		//kalman_update(gps.latitude, gps.longitude, gps.altitude);
 
 		target_lat = latitudes[target_index];
 		target_long = longitudes[target_index];
