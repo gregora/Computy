@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 from threading import Thread
 
-port = '/dev/ttyUSB0'  # Replace with your serial port
+port = '/dev/ttyUSB1'  # Replace with your serial port
 baudrate = 57600
 
 packet_start = b'ab'

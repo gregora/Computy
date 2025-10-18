@@ -227,7 +227,7 @@ int main(void)
 	float dt = ((float) (ms - p.time)) / 1000;
 	p.time = ms;
 
-	if(ms - last_transmission >= 100){
+	if(ms - last_transmission >= 15){
 
 	    memcpy(tx_buffer + 2, &p, sizeof(p));
 	    HAL_UART_Transmit(&huart6, tx_buffer, sizeof(tx_buffer), 100);
