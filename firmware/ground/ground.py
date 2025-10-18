@@ -1,5 +1,6 @@
 import pygame
 import pygame.gfxdraw
+from pygame import mixer
 import serial
 import struct
 import math
@@ -18,6 +19,11 @@ packet_start = b'ab'
 hide_location = False
 recording = False
 last_packet_time = time.time()
+radio_connected = False
+
+mixer.init()
+connect_sound = mixer.Sound("sounds/connected.mp3")
+disconnect_sound = mixer.Sound("sounds/disconnected.mp3")
 
 columns=["Time", "Yaw", "Pitch", "Roll", "q1", "q2", "q3", "q4", "ax", "ay", "az", "Latitude", "Longitude", "Altitude", "Satellites"]
 
@@ -129,10 +135,13 @@ def receive_thread():
                 # Read the start bytes
                 ch1 = ser.read(1)
 
+                #print(ch1)
+
                 if ch1 != packet_start[0:1]:
                     continue
 
                 ch2 = ser.read(1)
+                #print(ch2)
 
                 if ch2 != packet_start[1:2]:
                     continue
@@ -141,9 +150,11 @@ def receive_thread():
                 packet_size = 60  # Adjust based on actual packet size
                 
                 packet_data = ser.read(packet_size)
+                #print(f"{len(packet_data)}")
+                #print(packet_data)
 
                 # check that ab was not in the packet data
-                if packet_start in packet_data:
+                if packet_start in packet_data or packet_data[-1] == packet_start[0]:
                     print("Packet start found in packet data, discarding packet")
                     continue
 
@@ -374,10 +385,19 @@ while running:
         if(time.time() - last_packet_time > 1):
             # render a red circle
             pygame.draw.circle(screen, (255, 0, 0), (width/2, 40), 20)
+            
+            if radio_connected:
+                disconnect_sound.play()
+            
+            radio_connected = False
         else:
             # render a green circle
             pygame.draw.circle(screen, (0, 255, 0), (width/2, 40), 20)
-
+            
+            if not radio_connected:
+                connect_sound.play()
+            
+            radio_connected = True
 
         if recording:
             pygame.draw.rect(screen, (20, 20, 20), record_button)
