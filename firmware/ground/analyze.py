@@ -12,6 +12,13 @@ from scipy.signal import savgol_filter
 file = sys.argv[1]
 data = pd.read_csv(file)
 
+key_points = None
+
+try:
+    key_points = pd.read_csv("key_points.csv")
+except:
+    pass
+
 print("Average time between packets: ", np.round(np.mean(np.diff(data["Time"])), 2), " ms")
 
 
@@ -69,9 +76,26 @@ northing = latitudes - latitudes.iloc[0]
 easting  = longitudes - longitudes.iloc[0]
 northing = northing * 40_075 * 1000 / 360
 easting  = easting  * 40_075 * 1000 / 360 * np.cos(latitudes.iloc[0] * np.pi / 180)
+
+
 # equal scale plot for easting and northing
-plt.plot(easting, northing, label="GPS Track")
-plt.scatter(easting, northing, s = 2)
+plt.plot(easting, northing, label="GPS Track", zorder = 1)
+plt.scatter(easting, northing, s = 2, zorder = 2)
+
+# prepare key points
+if key_points is not None:
+    key_point_latitudes  = key_points["Latitude"] - latitudes.iloc[0]
+    key_point_longitudes = key_points["Longitude"] - longitudes.iloc[0]
+
+    key_point_latitudes = key_point_latitudes * 40_075 * 1000 / 360
+    key_point_longitudes  = key_point_longitudes  * 40_075 * 1000 / 360 * np.cos(latitudes.iloc[0] * np.pi / 180)
+
+    plt.scatter(key_point_longitudes, key_point_latitudes, zorder = 3)
+
+    for kp_lat, kp_lon in zip(key_point_latitudes, key_point_longitudes):
+        circle = plt.Circle((kp_lon, kp_lat), 30, color='orange', fill=False, zorder = 0)
+        plt.gca().add_artist(circle)
+
 plt.xlabel("Easting [m]")
 plt.ylabel("Northing [m]")
 plt.axis("equal")
