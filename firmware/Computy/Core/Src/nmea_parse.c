@@ -159,8 +159,10 @@ int nmea_GPGLL(GPS *gps_data, char*inputString) {
             for(int i = 0; i<counter; i++) free(values[i]);
             return 1;
         }
+    }else {
+    	for(int i = 0; i<counter; i++) free(values[i]);
+    	return 0;
     }
-    else return 0;
 }
 
 void nmea_parse(GPS *gps_data, uint8_t *buffer){
