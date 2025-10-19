@@ -66,11 +66,11 @@ struct Packet{
   uint32_t time;
 
   // orientation quaternion
-  struct Quaternion q;
+  struct Quaternion quat;
 
-  float ax;
-  float ay;
-  float az;
+  float p;
+  float q;
+  float r;
 
   float latitude;
   float longitude;

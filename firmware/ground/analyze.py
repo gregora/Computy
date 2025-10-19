@@ -39,16 +39,16 @@ plt.legend()
 
 plt.subplot(2, 3, 2)
 #smooth data
-data["ax"] = savgol_filter(data["ax"], window_length=1, polyorder=0)
-data["ay"] = savgol_filter(data["ay"], window_length=1, polyorder=0)
-data["az"] = savgol_filter(data["az"], window_length=1, polyorder=0)
+data["p"] = savgol_filter(data["p"], window_length=1, polyorder=0)
+data["q"] = savgol_filter(data["q"], window_length=1, polyorder=0)
+data["r"] = savgol_filter(data["r"], window_length=1, polyorder=0)
 
-plt.plot(data["Time"] / 1000, data["ax"], label="ax")
-plt.plot(data["Time"] / 1000, data["ay"], label="ay")
-plt.plot(data["Time"] / 1000, data["az"], label="az")
+plt.plot(data["Time"] / 1000, data["p"], label="p")
+plt.plot(data["Time"] / 1000, data["q"], label="q")
+plt.plot(data["Time"] / 1000, data["r"], label="r")
 
 plt.xlabel("Time [s]")
-plt.ylabel("Acceleration [m/s^2]")
+plt.ylabel("Angular velocity [deg/s]")
 
 plt.legend()
 
@@ -71,30 +71,31 @@ indices = np.where((np.abs(data["Latitude"]) > 0.1) & (np.abs(data["Longitude"])
 latitudes = data.iloc[indices]["Latitude"]
 longitudes = data.iloc[indices]["Longitude"]
 
+if len(latitudes) > 0:
 
-northing = latitudes - latitudes.iloc[0]
-easting  = longitudes - longitudes.iloc[0]
-northing = northing * 40_075 * 1000 / 360
-easting  = easting  * 40_075 * 1000 / 360 * np.cos(latitudes.iloc[0] * np.pi / 180)
+    northing = latitudes - latitudes.iloc[0]
+    easting  = longitudes - longitudes.iloc[0]
+    northing = northing * 40_075 * 1000 / 360
+    easting  = easting  * 40_075 * 1000 / 360 * np.cos(latitudes.iloc[0] * np.pi / 180)
 
 
-# equal scale plot for easting and northing
-plt.plot(easting, northing, label="GPS Track", zorder = 1)
-plt.scatter(easting, northing, s = 2, zorder = 2)
+    # equal scale plot for easting and northing
+    plt.plot(easting, northing, label="GPS Track", zorder = 1)
+    plt.scatter(easting, northing, s = 2, zorder = 2)
 
-# prepare key points
-if key_points is not None:
-    key_point_latitudes  = key_points["Latitude"] - latitudes.iloc[0]
-    key_point_longitudes = key_points["Longitude"] - longitudes.iloc[0]
+    # prepare key points
+    if key_points is not None:
+        key_point_latitudes  = key_points["Latitude"] - latitudes.iloc[0]
+        key_point_longitudes = key_points["Longitude"] - longitudes.iloc[0]
 
-    key_point_latitudes = key_point_latitudes * 40_075 * 1000 / 360
-    key_point_longitudes  = key_point_longitudes  * 40_075 * 1000 / 360 * np.cos(latitudes.iloc[0] * np.pi / 180)
+        key_point_latitudes = key_point_latitudes * 40_075 * 1000 / 360
+        key_point_longitudes  = key_point_longitudes  * 40_075 * 1000 / 360 * np.cos(latitudes.iloc[0] * np.pi / 180)
 
-    plt.scatter(key_point_longitudes, key_point_latitudes, zorder = 3)
+        plt.scatter(key_point_longitudes, key_point_latitudes, zorder = 3)
 
-    for kp_lat, kp_lon in zip(key_point_latitudes, key_point_longitudes):
-        circle = plt.Circle((kp_lon, kp_lat), 30, color='orange', fill=False, zorder = 0)
-        plt.gca().add_artist(circle)
+        for kp_lat, kp_lon in zip(key_point_latitudes, key_point_longitudes):
+            circle = plt.Circle((kp_lon, kp_lat), 30, color='orange', fill=False, zorder = 0)
+            plt.gca().add_artist(circle)
 
 plt.xlabel("Easting [m]")
 plt.ylabel("Northing [m]")

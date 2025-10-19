@@ -22,7 +22,7 @@ mixer.init()
 connect_sound = mixer.Sound("sounds/connected.mp3")
 disconnect_sound = mixer.Sound("sounds/disconnected.mp3")
 
-columns=["Time", "Yaw", "Pitch", "Roll", "q1", "q2", "q3", "q4", "ax", "ay", "az", "Latitude", "Longitude", "Altitude", "Satellites"]
+columns=["Time", "Yaw", "Pitch", "Roll", "q1", "q2", "q3", "q4", "p", "q", "r", "Latitude", "Longitude", "Altitude", "Satellites"]
 
 for i in range(7):
     columns.append("Channel_" + str(i))
@@ -63,9 +63,9 @@ class Packet:
     x = 0.0
     y = 0.0
     z = 0.0
-    ax = 0.0
-    ay = 0.0
-    az = 0.0
+    p = 0.0
+    q = 0.0
+    r = 0.0
 
     latitude = 0.0
     longitude = 0.0
@@ -87,9 +87,9 @@ class Packet:
             self.x,
             self.y,
             self.z,
-            self.ax,
-            self.ay,
-            self.az,
+            self.p,
+            self.q,
+            self.r,
             self.latitude,
             self.longitude,
             self.altitude,
@@ -108,7 +108,7 @@ class Packet:
         "Mode: {}\n".format(
             self.time,
             self.w, self.x, self.y, self.z,
-            self.ax, self.ay, self.az,
+            self.p, self.q, self.r,
             self.latitude, self.longitude, self.altitude, self.sattelites,
             self.channels,
             self.mode
@@ -174,7 +174,7 @@ def receive_thread():
 
                 if recording:
 
-                    data = [p.time, yaw, pitch, roll, p.w, p.x, p.y, p.z, p.ax, p.ay, p.az, p.latitude, p.longitude, p.altitude, p.sattelites]
+                    data = [p.time, yaw, pitch, roll, p.w, p.x, p.y, p.z, p.p, p.q, p.r, p.latitude, p.longitude, p.altitude, p.sattelites]
 
                     data += p.channels
                     data.append(p.mode)
@@ -242,13 +242,13 @@ while running:
     text = font.render("Roll: " + str(round(roll, 2)), True, (255, 255, 255))
     screen.blit(text, (10, 60))
 
-    text = font.render("ax: " + str(round(p.ax, 2)), True, (255, 255, 255))
+    text = font.render("p: " + str(round(p.p, 2)), True, (255, 255, 255))
     screen.blit(text, (10, 110))
 
-    text = font.render("ay: " + str(round(p.ay, 2)), True, (255, 255, 255))
+    text = font.render("q: " + str(round(p.q, 2)), True, (255, 255, 255))
     screen.blit(text, (10, 135))
 
-    text = font.render("az: " + str(round(p.az, 2)), True, (255, 255, 255))
+    text = font.render("r: " + str(round(p.r, 2)), True, (255, 255, 255))
     screen.blit(text, (10, 160))
 
 
@@ -328,13 +328,6 @@ while running:
         marker_rect = marker.get_rect()
         screen.blit(marker, (width / 2 - marker_rect.width/2, height / 2 + 200 - 50 - marker_rect.height/2))
 
-        # render G-force
-        g_force = (p.ax**2 + p.ay**2 + p.az**2)**0.5
-        g_force = round(g_force / 10, 1)
-
-        text = font.render(str(g_force) + " g", True, (245, 230, 66))
-        screen.blit(text, (width / 2 - 190, height / 2 - 70 + 400))
-
 
 
 
@@ -375,7 +368,6 @@ while running:
 
 
             if len(line) > 2:
-                print(len(path_positions))
                 pygame.draw.lines(screen, (255, 255, 255), False, path_positions, 1)
 
             # scale the bug

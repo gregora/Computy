@@ -259,9 +259,9 @@ int main(void)
 		temp = quaternion_multiply(&quat_rotate_azimuth, &temp);
 
 		// Set quaternion
-		p.q = temp;
+		p.quat = temp;
 
-		BNO055_QuaternionToEuler(&p.q, &euler);
+		BNO055_QuaternionToEuler(&p.quat, &euler);
 
 	}
 
@@ -271,11 +271,7 @@ int main(void)
     if(BNO055_ReadLinearAccel(&bno055, &accel) == HAL_OK)
     {
         // Use acceleration data (accel.x, accel.y, accel.z in m/s^2)
-    	p.ax = accel.x;
-    	p.ay = accel.y;
-    	p.az = accel.z;
-
-    	float raw_accel[3] = {p.ax, p.ay, p.az};
+    	float raw_accel[3] = {accel.x, accel.y, accel.z};
 
     	// Calculate acceleration in global coordinates
 		temp = quaternion_multiply(&quat_axis_remap, &quat_raw);
@@ -288,9 +284,10 @@ int main(void)
     	ay_global = a_global.y;
     	az_global = a_global.z;
 
-    	p.ax = ax_global;
-    	p.ay = ay_global;
-    	p.az = az_global;
+    	// acceleration is no longer in packet!
+    	//p.ax = ax_global;
+    	//p.ay = ay_global;
+    	//p.az = az_global;
 
     	//kalman_predict(dt, ax_global, ay_global, az_global);
     	//float kalman_latitude, kalman_longitude, kalman_height;
@@ -304,7 +301,9 @@ int main(void)
 
 
     if(BNO055_ReadAngularVelocity(&bno055, &ang_vel) == HAL_OK) {
-
+    	p.p = ang_vel.x;
+    	p.q = ang_vel.y;
+    	p.r = ang_vel.z;
     }
 
     // Parse GPS
