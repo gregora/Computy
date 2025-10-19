@@ -373,7 +373,8 @@ while running:
 
 
             if len(line) > 2:
-                pygame.draw.lines(screen, (255, 255, 255), False, line, 1)
+                print(len(path_positions))
+                pygame.draw.lines(screen, (255, 255, 255), False, path_positions, 1)
 
             # scale the bug
             bug = pygame.transform.smoothscale(location_bug_image, (15, 15))
