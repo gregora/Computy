@@ -11,9 +11,6 @@ import time
 from datetime import datetime
 from threading import Thread
 
-port = '/dev/ttyUSB0'  # Replace with your serial port
-baudrate = 57600
-
 packet_start = b'ab'
 
 hide_location = False
@@ -125,7 +122,18 @@ history = []
 #
 
 def receive_thread():
-    global last_packet_time, recording, saved_packets, port, baudrate, packet_start, columns, file_name, history, p
+    global last_packet_time, recording, saved_packets, packet_start, columns, file_name, history, p
+
+    baudrate = 57600
+
+    for i in range(10):
+        try:
+            port = f'/dev/ttyUSB{i}'
+            ser = serial.Serial(port, baudrate, timeout=1)
+            ser.close()
+            break
+        except:
+            continue
 
     print(f"Port: {port}, Baudrate: {baudrate}")
 
