@@ -347,7 +347,6 @@ while running:
 
         # get average position
         if len(history) > 1:
-            avg_pos = np.array([0.0, 0.0])
             packets_with_location = 0
             for h in history[-10000::5]:
                 # check if data is valid
@@ -359,22 +358,17 @@ while running:
 
                 packets_with_location += 1
 
-                avg_pos += np.array([h.latitude, h.longitude])
                 line.append([h.latitude, h.longitude])
-            if packets_with_location == 0:
-                avg_pos = np.array([0.0, 0.0])
-            else:
-                avg_pos /= packets_with_location
             
             map_scale_lat = 40075 / 360  # full width at 1 km
-            map_scale_long = 40075 / 360 * np.cos(avg_pos[0] * 3.1415 / 180) # full height at 1 km
+            map_scale_long = 40075 / 360 * np.cos(p.latitude * 3.1415 / 180) # full height at 1 km
 
             path_positions = []
             for l in line:
                 
                 tup = (
-                    int(10 + 370/2 + 370 * (l[1] - avg_pos[1]) * map_scale_long),
-                    int(height / 2 - 30 + 370/2 - 370 * (l[0] - avg_pos[0]) * map_scale_lat)
+                    int(10 + 370/2 + 370 * (l[1] - p.longitude) * map_scale_long),
+                    int(height / 2 - 30 + 370/2 - 370 * (l[0] - p.latitude) * map_scale_lat)
                 )
 
                 path_positions.append(tup)
@@ -392,9 +386,10 @@ while running:
 
             if abs(p.latitude) < 180 and abs(p.longitude) < 180:   
                 screen.blit(bug, (
-                    int(10 + 370/2 + 370 * (p.longitude - avg_pos[1]) * map_scale_long - bug_rect.width/2),
-                    int(height / 2 - 30 + 370/2 - 370 * (p.latitude - avg_pos[0]) * map_scale_lat) - bug_rect.height/2)
+                    int(10 + 370/2 - bug_rect.width/2),
+                    int(height / 2 - 30 + 370/2 - bug_rect.height/2)
                     )
+                )
 
 
 
