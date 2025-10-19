@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 from threading import Thread
 
-port = '/dev/ttyUSB1'  # Replace with your serial port
+port = '/dev/ttyUSB0'  # Replace with your serial port
 baudrate = 57600
 
 packet_start = b'ab'
@@ -361,9 +361,16 @@ while running:
             map_scale_lat = 40075 / 360  # full width at 1 km
             map_scale_long = 40075 / 360 * np.cos(avg_pos[0] * 3.1415 / 180) # full height at 1 km
 
+            path_positions = []
             for l in line:
-                l[0] = int(10 + 370/2 + 370 * (l[0] - avg_pos[1]) * map_scale_long)
-                l[1] = int(height / 2 - 30 + 370/2 - 370 * (l[1] - avg_pos[0]) * map_scale_lat)
+                
+                tup = (
+                    int(10 + 370/2 + 370 * (l[1] - avg_pos[1]) * map_scale_long),
+                    int(height / 2 - 30 + 370/2 - 370 * (l[0] - avg_pos[0]) * map_scale_lat)
+                )
+
+                path_positions.append(tup)
+
 
             if len(line) > 2:
                 pygame.draw.lines(screen, (255, 255, 255), False, line, 1)
