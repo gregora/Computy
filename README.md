@@ -9,7 +9,7 @@ An STM32 based flight computer
 - **GNSS** via UART
 - **6 PWM** outputs for servos
 - Receiver connection via UART
-- **433MHz CC1101** telemetry radio
+- Transparent serial telemetry radio via UART
 
 
 ## Hardware

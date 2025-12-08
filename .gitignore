@@ -5,6 +5,8 @@ PCB/gerber_to_order/
 
 PCB/*.zip
 
+PCB/#auto_saved_files#
+
 *.lck
 
 # Temporary files
