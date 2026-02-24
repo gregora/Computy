@@ -64,7 +64,6 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
-UART_HandleTypeDef huart6;
 DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
@@ -111,7 +110,6 @@ static void MX_TIM8_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_USART6_UART_Init(void);
 static void MX_CAN2_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_UART5_Init(void);
@@ -160,7 +158,6 @@ int main(void)
   MX_TIM3_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
-  MX_USART6_UART_Init();
   MX_CAN2_Init();
   MX_USART2_UART_Init();
   MX_UART5_Init();
@@ -209,6 +206,7 @@ int main(void)
   HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
 
   uint32_t last_transmission = 0; // when was the last packet sent?
+  uint32_t last_light_switch = 0; // when was the light last time toggled?
 
   // Axis remap necessary transformations
   struct Quaternion quat_axis_remap =     {0.0,  1.0f, 0.0, 0.0}; //  z -> -z,  y -> -y
@@ -236,15 +234,22 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 	uint32_t ms = __HAL_TIM_GET_COUNTER(&htim2);
 	float dt = ((float) (ms - p.time)) / 1000;
 	p.time = ms;
 
+	if (ms - last_light_switch >= 300){
+		last_light_switch = ms;
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_0);
+	}
+
 	if(ms - last_transmission >= 30){
 
 	    memcpy(tx_buffer + 2, &p, sizeof(p));
-	    HAL_UART_Transmit(&huart6, tx_buffer, sizeof(tx_buffer), 100);
+	    HAL_UART_Transmit(&huart2, tx_buffer, sizeof(tx_buffer), 100);
 	    last_transmission = ms;
+
 	}
 
 	if(BNO055_ReadQuaternion(&bno055, &quat) == HAL_OK)
@@ -888,39 +893,6 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
-  * @brief USART6 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART6_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART6_Init 0 */
-
-  /* USER CODE END USART6_Init 0 */
-
-  /* USER CODE BEGIN USART6_Init 1 */
-
-  /* USER CODE END USART6_Init 1 */
-  huart6.Instance = USART6;
-  huart6.Init.BaudRate = 57600;
-  huart6.Init.WordLength = UART_WORDLENGTH_8B;
-  huart6.Init.StopBits = UART_STOPBITS_1;
-  huart6.Init.Parity = UART_PARITY_NONE;
-  huart6.Init.Mode = UART_MODE_TX_RX;
-  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_HalfDuplex_Init(&huart6) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART6_Init 2 */
-
-  /* USER CODE END USART6_Init 2 */
 
 }
 
