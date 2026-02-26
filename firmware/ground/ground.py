@@ -119,7 +119,15 @@ p = Packet()
 
 history = []
 
-#
+def send_parameter(param_index, param_value, ser):
+
+    send_char = struct.pack("<BBHf", 0x61, 0x62, param_index, param_value)  # header: "ab" - uint16 param_index - float param_value
+    print(f"Sending parameter {param_index} with value {param_value}")
+    try:
+        ser.write(send_char)
+    except Exception:
+        print("Error sending parameter, serial connection might be lost")
+        pass
 
 def receive_thread():
     global last_packet_time, recording, saved_packets, packet_start, columns, file_name, history, p
@@ -138,17 +146,10 @@ def receive_thread():
     print(f"Port: {port}, Baudrate: {baudrate}")
 
     with serial.Serial(port, baudrate, timeout=1) as ser:
-        send_char = struct.pack("<BBHf", 0x61, 0x62, 2, 17.12)  # header: "ab" - uint16 param_index - float param_value
-        print(send_char)
 
         while True:
             try:
-                # send a character on every loop iteration (could be throttled if needed)
-                try:
-                    ser.write(send_char)
-                except Exception:
-                    # if writing fails, just ignore and continue
-                    pass
+                send_parameter(2, 3.4, ser)  # send a dummy parameter to check if the connection is alive
 
                 # Read the start bytes
                 ch1 = ser.read(1)
