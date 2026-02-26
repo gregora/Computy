@@ -138,8 +138,18 @@ def receive_thread():
     print(f"Port: {port}, Baudrate: {baudrate}")
 
     with serial.Serial(port, baudrate, timeout=1) as ser:
+        send_char = struct.pack("<BBHf", 0x61, 0x62, 2, 17.12)  # header: "ab" - uint16 param_index - float param_value
+        print(send_char)
+
         while True:
             try:
+                # send a character on every loop iteration (could be throttled if needed)
+                try:
+                    ser.write(send_char)
+                except Exception:
+                    # if writing fails, just ignore and continue
+                    pass
+
                 # Read the start bytes
                 ch1 = ser.read(1)
 

@@ -64,7 +64,7 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
-DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
 char rx_buff_gps[83]; // sentence buffer - NMEA messages are at most 82 chars long
@@ -77,6 +77,10 @@ char lastMeasure[10];
 
 uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum (circular buffer)
 uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+uint8_t rx_buff_radio[8]; // package buffer: uint16_t start - uint16_t param_id - float value
+char rx_char_radio;
+int rx_i_radio = 0;
 
 struct Packet p;
 
@@ -202,8 +206,10 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
   HAL_UART_Receive_DMA(&huart1, rx_buff_ibus, 32);
+  HAL_UART_Receive_IT(&huart2, &rx_char_radio, 1);
+  HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
+
 
   uint32_t last_transmission = 0; // when was the last packet sent?
   uint32_t last_light_switch = 0; // when was the light last time toggled?
@@ -903,12 +909,12 @@ static void MX_DMA_Init(void)
 {
 
   /* DMA controller clock enable */
-  __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA2_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 
 }
 
@@ -963,7 +969,35 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 	if(huart->Instance == USART1){
 		// Do nothig - we are using circular buffer
-	}else if(huart->Instance == UART4){
+	} else if (huart->Instance == USART2){
+
+		HAL_UART_Receive_IT(&huart2, &rx_char_radio, 1);
+
+		if(rx_char_radio == 'b' && rx_buff_radio[rx_i_radio] == 'a'){
+			// header detected
+			rx_buff_radio[0] = 'a';
+			rx_buff_radio[1] = 'b';
+
+			rx_i_radio = 1;
+		} else {
+			// header not detected
+
+			rx_i_radio += 1;
+			rx_i_radio = rx_i_radio % sizeof(rx_buff_radio);
+
+			rx_buff_radio[rx_i_radio] = rx_char_radio;
+
+		}
+
+
+		if ((rx_i_radio == sizeof(rx_buff_radio) - 1) && rx_buff_radio[0] == 'a' && rx_buff_radio[1] == 'b'){
+			float param_value = *((float*) (&rx_buff_radio[4]));
+			uint16_t param_index = *((uint16_t*) (&rx_buff_radio[2]));
+		}
+
+
+
+	} else if(huart->Instance == UART4){
 
 		HAL_UART_Receive_IT(&huart4, &rx_char_gps, 1);
 
