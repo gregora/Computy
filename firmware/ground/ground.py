@@ -11,6 +11,19 @@ import time
 from datetime import datetime
 from threading import Thread
 
+from tkinter import Tk
+from tkinter import filedialog
+
+param2id = {
+    "kP_roll": 0,
+    "kI_roll": 1,
+    "kD_roll": 2,
+    "kP_pitch": 3,
+    "kI_pitch": 4,
+    "kD_pitch": 5,
+    "light_T": 255
+}
+
 packet_start = b'ab'
 
 hide_location = False
@@ -219,6 +232,8 @@ thread = Thread(target=receive_thread)
 thread.daemon = True
 thread.start()
 
+root = Tk()
+root.withdraw()
 
 pygame.init()
 pygame.display.set_caption('Ground Station')
@@ -234,10 +249,9 @@ last_packet_time = 0
 
 running = True
 
-
 while running:
-
     record_button = pygame.Rect(width//2 + 60, 15, 50, 50)
+    load_config_button = pygame.Rect(width - 300, height // 2, 200, 50)
     screen.fill((50, 50, 50))
 
 
@@ -325,120 +339,121 @@ while running:
         screen.blit(text, (width - 115 - text_rect.width / 2, 15))
 
 
+    ### Parameters ###
 
 
-        ### Artificial horizon ###
+    ### Artificial horizon ###
 
-        pitch_frac = pitch / 60
+    pitch_frac = pitch / 60
 
-        if(abs(pitch_frac) > 1):
-            pitch_frac /= abs(pitch_frac)
+    if(abs(pitch_frac) > 1):
+        pitch_frac /= abs(pitch_frac)
 
-        pitch_frac = 0.5 + pitch_frac * 0.5
+    pitch_frac = 0.5 + pitch_frac * 0.5
 
-        pygame.draw.rect(screen, (30, 30, 30), (width / 2 - 205, height / 2 - 55, 410, 410))
-        pygame.draw.rect(screen, (0, 125, 227), (width / 2 - 200, height / 2 - 50, 400, 400 * pitch_frac))
-        pygame.draw.rect(screen, (94, 42, 0), (width / 2 - 200, height / 2 - 50 + 400 * pitch_frac, 400, 400 * (1 - pitch_frac)))
-
-
-        # scale the marker
-        marker = pygame.transform.scale(marker_image, (200, 16))
-        # rotate the marker   
-        marker = pygame.transform.rotate(marker, - roll)
-        marker_rect = marker.get_rect()
-        screen.blit(marker, (width / 2 - marker_rect.width/2, height / 2 + 200 - 50 - marker_rect.height/2))
+    pygame.draw.rect(screen, (30, 30, 30), (width / 2 - 205, height / 2 - 55, 410, 410))
+    pygame.draw.rect(screen, (0, 125, 227), (width / 2 - 200, height / 2 - 50, 400, 400 * pitch_frac))
+    pygame.draw.rect(screen, (94, 42, 0), (width / 2 - 200, height / 2 - 50 + 400 * pitch_frac, 400, 400 * (1 - pitch_frac)))
 
 
+    # scale the marker
+    marker = pygame.transform.scale(marker_image, (200, 16))
+    # rotate the marker   
+    marker = pygame.transform.rotate(marker, - roll)
+    marker_rect = marker.get_rect()
+    screen.blit(marker, (width / 2 - marker_rect.width/2, height / 2 + 200 - 50 - marker_rect.height/2))
 
 
-        ### Minimap ###
 
-        # render position
-        pygame.draw.rect(screen, (20, 20, 20), (10, height / 2 - 30, 370, 370))
 
-        line = []
+    ### Minimap ###
 
-        # get average position
-        if len(history) > 1:
-            packets_with_location = 0
-            for h in history[-10000::5]:
-                # check if data is valid
-                if h.latitude <= 0.1 and h.longitude <= 0.1:
-                    continue
+    # render position
+    pygame.draw.rect(screen, (20, 20, 20), (10, height / 2 - 30, 370, 370))
 
-                if abs(h.latitude) > 180 or abs(h.longitude) > 180:
-                    continue
+    line = []
 
-                packets_with_location += 1
+    # get average position
+    if len(history) > 1:
+        packets_with_location = 0
+        for h in history[-10000::5]:
+            # check if data is valid
+            if h.latitude <= 0.1 and h.longitude <= 0.1:
+                continue
 
-                line.append([h.latitude, h.longitude])
+            if abs(h.latitude) > 180 or abs(h.longitude) > 180:
+                continue
+
+            packets_with_location += 1
+
+            line.append([h.latitude, h.longitude])
+        
+        map_scale_lat = 40075 / 360  # full width at 1 km
+        map_scale_long = 40075 / 360 * np.cos(p.latitude * 3.1415 / 180) # full height at 1 km
+
+        path_positions = []
+        for l in line:
             
-            map_scale_lat = 40075 / 360  # full width at 1 km
-            map_scale_long = 40075 / 360 * np.cos(p.latitude * 3.1415 / 180) # full height at 1 km
+            tup = (
+                int(10 + 370/2 + 370 * (l[1] - p.longitude) * map_scale_long),
+                int(height / 2 - 30 + 370/2 - 370 * (l[0] - p.latitude) * map_scale_lat)
+            )
 
-            path_positions = []
-            for l in line:
-                
-                tup = (
-                    int(10 + 370/2 + 370 * (l[1] - p.longitude) * map_scale_long),
-                    int(height / 2 - 30 + 370/2 - 370 * (l[0] - p.latitude) * map_scale_lat)
+            path_positions.append(tup)
+
+
+        if len(line) > 2:
+            pygame.draw.lines(screen, (255, 255, 255), False, path_positions, 1)
+
+        # scale the bug
+        bug = pygame.transform.smoothscale(location_bug_image, (15, 15))
+        # rotate the bug   
+        bug = pygame.transform.rotozoom(bug, -yaw, 1.0)
+        bug_rect = bug.get_rect()
+
+        if abs(p.latitude) < 180 and abs(p.longitude) < 180:   
+            screen.blit(bug, (
+                int(10 + 370/2 - bug_rect.width/2),
+                int(height / 2 - 30 + 370/2 - bug_rect.height/2)
                 )
-
-                path_positions.append(tup)
-
-
-            if len(line) > 2:
-                pygame.draw.lines(screen, (255, 255, 255), False, path_positions, 1)
-
-            # scale the bug
-            bug = pygame.transform.smoothscale(location_bug_image, (15, 15))
-            # rotate the bug   
-            bug = pygame.transform.rotozoom(bug, -yaw, 1.0)
-            bug_rect = bug.get_rect()
-
-            if abs(p.latitude) < 180 and abs(p.longitude) < 180:   
-                screen.blit(bug, (
-                    int(10 + 370/2 - bug_rect.width/2),
-                    int(height / 2 - 30 + 370/2 - bug_rect.height/2)
-                    )
-                )
+            )
 
 
 
-        if(time.time() - last_packet_time > 1):
-            # render a red circle
-            pygame.draw.circle(screen, (255, 0, 0), (width/2, 40), 20)
-            
-            if radio_connected:
-                disconnect_sound.play()
-            
-            radio_connected = False
-        else:
-            # render a green circle
-            pygame.draw.circle(screen, (0, 255, 0), (width/2, 40), 20)
-            
-            if not radio_connected:
-                connect_sound.play()
-            
-            radio_connected = True
+    if(time.time() - last_packet_time > 1):
+        # render a red circle
+        pygame.draw.circle(screen, (255, 0, 0), (width/2, 40), 20)
+        
+        if radio_connected:
+            disconnect_sound.play()
+        
+        radio_connected = False
+    else:
+        # render a green circle
+        pygame.draw.circle(screen, (0, 255, 0), (width/2, 40), 20)
+        
+        if not radio_connected:
+            connect_sound.play()
+        
+        radio_connected = True
 
-        if recording:
-            pygame.draw.rect(screen, (20, 20, 20), record_button)
-            # draww two vertical lines
-            pygame.draw.line(screen, (255, 255, 255), (width//2 + 75, 25), (width//2 + 75, 55), 5)
-            pygame.draw.line(screen, (255, 255, 255), (width//2 + 95, 25), (width//2 + 95, 55), 5)
-            # add small text under the button
-            font = pygame.font.Font(None, 18)
-            text = font.render("Recording", True, (255, 255, 255))
-            screen.blit(text, (width//2 + 55, 75))
-        else:
-            pygame.draw.rect(screen, (40, 40, 40), record_button)
-            # draw a triangle
-            pygame.draw.polygon(screen, (255, 255, 255), [(width//2 + 75, 30), (width//2 + 75, 50), (width//2 + 95, 40)])
-
-
+    if recording:
+        pygame.draw.rect(screen, (20, 20, 20), record_button)
+        # draww two vertical lines
+        pygame.draw.line(screen, (255, 255, 255), (width//2 + 75, 25), (width//2 + 75, 55), 5)
+        pygame.draw.line(screen, (255, 255, 255), (width//2 + 95, 25), (width//2 + 95, 55), 5)
+        # add small text under the button
+        font = pygame.font.Font(None, 18)
+        text = font.render("Recording", True, (255, 255, 255))
+        screen.blit(text, (width//2 + 55, 75))
+    else:
+        pygame.draw.rect(screen, (40, 40, 40), record_button)
+        # draw a triangle
+        pygame.draw.polygon(screen, (255, 255, 255), [(width//2 + 75, 30), (width//2 + 75, 50), (width//2 + 95, 40)])
 
     pygame.display.flip()
+
+
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -446,6 +461,7 @@ while running:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if record_button.collidepoint(event.pos):
                 recording = not recording
+
         # check if space is pressed
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
