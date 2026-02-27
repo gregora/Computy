@@ -121,7 +121,16 @@ history = []
 
 def send_parameter(param_index, param_value, ser):
 
-    send_char = struct.pack("<BBHf", 0x61, 0x62, param_index, param_value)  # header: "ab" - uint16 param_index - float param_value
+    # calculate checksum
+    # checksum1 = 0x61 xor param_index byte 1 xor param_value byte 1 xor param_value byte 3
+    # checksum2 = 0x62 xor param_index byte 2 xor param_value byte 2 xor param_value byte 4
+
+    checksum1 = 0x61 ^ (param_index & 0xFF) ^ (struct.pack("<f", param_value)[0]) ^ (struct.pack("<f", param_value)[2])
+    checksum2 = 0x62 ^ ((param_index >> 8) & 0xFF) ^ (struct.pack("<f", param_value)[1]) ^ (struct.pack("<f", param_value)[3])
+
+    #checksum2 = 0x32  # for testing, ignore the checksum
+
+    send_char = struct.pack("<BBHfBB", 0x61, 0x62, param_index, param_value, checksum1, checksum2)  # header: "ab" - uint16 param_index - float param_value
     print(f"Sending parameter {param_index} with value {param_value}")
     try:
         ser.write(send_char)
@@ -149,7 +158,7 @@ def receive_thread():
 
         while True:
             try:
-                send_parameter(2, 3.4, ser)  # send a dummy parameter to check if the connection is alive
+                send_parameter(255, 0.100, ser)  # send a dummy parameter to check if the connection is alive
 
                 # Read the start bytes
                 ch1 = ser.read(1)

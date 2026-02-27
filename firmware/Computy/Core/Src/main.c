@@ -38,11 +38,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define RAD2DEG  180.0f / 3.1415f
-
-#define ELEVATOR_TRIM (int16_t)1472
-#define AILERON_TRIM  (int16_t)1472
-#define RUDDER_TRIM   (int16_t)1381
 
 /* USER CODE END PD */
 
@@ -67,6 +62,19 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
+
+// PARAMETERS
+float kP_roll = 0.0110f;
+float kI_roll = 0.0f;
+float kD_roll = 0.0022f;
+float kP_pitch = 0.0200f;
+float kI_pitch = 0.0f;
+float kD_pitch = 0.0040f;
+
+float light_T = 0.300f;
+
+// COMMUNICATION VARIABLES
+
 char rx_buff_gps[83]; // sentence buffer - NMEA messages are at most 82 chars long
 char rx_char_gps;
 int rx_i_gps = 0;
@@ -78,7 +86,7 @@ char lastMeasure[10];
 uint8_t rx_buff_ibus[32]; // start - 14 channels - checksum (circular buffer)
 uint16_t channels[14] = {1500, 1500, 1000, 1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-uint8_t rx_buff_radio[8]; // package buffer: uint16_t start - uint16_t param_id - float value
+uint8_t rx_buff_radio[10]; // package buffer: uint16_t header - uint16_t param_id - float value - 2x uint8_t checksum
 char rx_char_radio;
 int rx_i_radio = 0;
 
@@ -89,6 +97,8 @@ int16_t target_index = 0;
 float target_lat = 0;
 float target_long = 0;
 
+
+// KALMAN FILTER
 
 // Define two 2x2 matrices
 float32_t dataA[4] = {1.0f, 2.0f,
@@ -245,7 +255,7 @@ int main(void)
 	float dt = ((float) (ms - p.time)) / 1000;
 	p.time = ms;
 
-	if (ms - last_light_switch >= 300){
+	if (ms - last_light_switch >= 1000 * light_T){
 		last_light_switch = ms;
 		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_0);
 	}
@@ -347,7 +357,7 @@ int main(void)
 
 		float distance_to_target = sqrt(delta_x*delta_x + delta_y*delta_y);
 
-		// Objective complete if the aircraft is within 20m
+		// Objective complete if the aircraft is within 30m
 		if (distance_to_target < 30.0f){
 			target_index = (target_index + 1) % num_points;
 		}
@@ -412,8 +422,8 @@ int main(void)
 	    	p.channels[i] = channels[i];
 	    }
 	} else if (p.mode == 1){
-		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*0.0110f + (ang_vel.x)*0.0022f));
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*0.0200f - (ang_vel.y)*0.0040f));
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  0.0f)*kP_roll  + (ang_vel.x)*kD_roll ));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - 10.0f)*kP_pitch - (ang_vel.y)*kD_pitch));
 		p.channels[3] = RUDDER_TRIM;
 
 		// Map channels 4-7 directly
@@ -438,8 +448,8 @@ int main(void)
 
 		float pitch_target = 4.0f + 50.0f * (1 - pitch_factor);
 
-		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  roll_target)*0.0110f + (ang_vel.x)*0.0022f));
-		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - pitch_target)*0.0200f - (ang_vel.y)*0.0040f));
+		p.channels[0] = AILERON_TRIM  + (int16_t) (500.0f*((euler.roll*RAD2DEG  -  roll_target)*kP_roll  + (ang_vel.x)*kD_roll ));
+		p.channels[1] = ELEVATOR_TRIM + (int16_t) (500.0f*((euler.pitch*RAD2DEG - pitch_target)*kP_pitch - (ang_vel.y)*kD_pitch));
 		p.channels[3] = RUDDER_TRIM;
 
 		// Map channels 4-7 directly
@@ -991,8 +1001,42 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 
 		if ((rx_i_radio == sizeof(rx_buff_radio) - 1) && rx_buff_radio[0] == 'a' && rx_buff_radio[1] == 'b'){
+
+			uint8_t checksum1 = rx_buff_radio[0] ^ rx_buff_radio[2] ^ rx_buff_radio[4] ^ rx_buff_radio[6];
+			uint8_t checksum2 = rx_buff_radio[1] ^ rx_buff_radio[3] ^ rx_buff_radio[5] ^ rx_buff_radio[7];
+
+			if(checksum1 != rx_buff_radio[8] || checksum2 != rx_buff_radio[9]){
+				return;
+			}
+
 			float param_value = *((float*) (&rx_buff_radio[4]));
 			uint16_t param_index = *((uint16_t*) (&rx_buff_radio[2]));
+
+			switch (param_index) {
+				case 0:
+					kP_roll = param_value;
+					break;
+				case 1:
+					kI_roll = param_value;
+					break;
+				case 2:
+					kD_roll = param_value;
+					break;
+				case 3:
+					kP_pitch = param_value;
+					break;
+				case 4:
+					kI_pitch = param_value;
+					break;
+				case 5:
+					kD_pitch = param_value;
+					break;
+				case 255:
+					light_T = param_value;
+					break;
+			}
+
+
 		}
 
 
