@@ -14,15 +14,35 @@ from threading import Thread
 from tkinter import Tk
 from tkinter import filedialog
 
+import configparser
+
 param2id = {
-    "kP_roll": 0,
-    "kI_roll": 1,
-    "kD_roll": 2,
-    "kP_pitch": 3,
-    "kI_pitch": 4,
-    "kD_pitch": 5,
-    "light_T": 255
+    "kp_roll": 0,
+    "ki_roll": 1,
+    "kd_roll": 2,
+    "kp_pitch": 3,
+    "ki_pitch": 4,
+    "kd_pitch": 5,
+    "light_t": 255
 }
+
+
+# open file dialog with tkinter
+root = Tk()
+root.withdraw()
+config_file = filedialog.askopenfilename(filetypes=[("Configuration files", "*.cfg")], initialdir="configs/")
+
+config = configparser.ConfigParser()
+config.read(config_file)
+
+params = {}
+
+for param in config["Parameters"]:
+    params[param] = float(config["Parameters"][param])
+
+print("Loaded parameters:")
+for param in params:
+    print(param, params[param])
 
 packet_start = b'ab'
 
@@ -152,7 +172,7 @@ def send_parameter(param_index, param_value, ser):
         pass
 
 def receive_thread():
-    global last_packet_time, recording, saved_packets, packet_start, columns, file_name, history, p
+    global ser, last_packet_time, recording, saved_packets, packet_start, columns, file_name, history, p
 
     baudrate = 57600
 
@@ -171,8 +191,6 @@ def receive_thread():
 
         while True:
             try:
-                send_parameter(255, 0.100, ser)  # send a dummy parameter to check if the connection is alive
-
                 # Read the start bytes
                 ch1 = ser.read(1)
 
@@ -341,6 +359,22 @@ while running:
 
     ### Parameters ###
 
+    # write parameters on the right side
+    param_y = 400
+    for param in params:
+        # smaller font
+        font_small = pygame.font.Font(None, 15)
+        text = font_small.render(param + ": " + str(params[param]), True, (255, 255, 255))
+        screen.blit(text, (width - 150, param_y))
+        param_y += 18
+
+    # upload button
+    upload_button = pygame.Rect(width - 150, param_y, 100, 30)
+    pygame.draw.rect(screen, (20, 20, 20), upload_button)
+    text = font.render("Upload", True, (255, 255, 255))
+    text_rect = text.get_rect(center=upload_button.center)
+    screen.blit(text, text_rect)
+
 
     ### Artificial horizon ###
 
@@ -439,7 +473,7 @@ while running:
 
     if recording:
         pygame.draw.rect(screen, (20, 20, 20), record_button)
-        # draww two vertical lines
+        # draw two vertical lines
         pygame.draw.line(screen, (255, 255, 255), (width//2 + 75, 25), (width//2 + 75, 55), 5)
         pygame.draw.line(screen, (255, 255, 255), (width//2 + 95, 25), (width//2 + 95, 55), 5)
         # add small text under the button
@@ -461,6 +495,10 @@ while running:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if record_button.collidepoint(event.pos):
                 recording = not recording
+            if upload_button.collidepoint(event.pos):
+                for param in params:
+                    send_parameter(param2id[param], params[param], ser)
+                    time.sleep(0.1)  # add a small delay between parameter uploads to avoid overwhelming the serial connection
 
         # check if space is pressed
         if event.type == pygame.KEYDOWN:
