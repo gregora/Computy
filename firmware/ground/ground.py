@@ -26,6 +26,7 @@ param2id = {
     "elevator_trim": 10,
     "aileron_trim": 11,
     "rudder_trim": 12,
+    "radio_t": 254,
     "light_t": 255
 }
 

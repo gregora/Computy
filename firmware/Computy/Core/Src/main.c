@@ -75,6 +75,7 @@ float ELEVATOR_TRIM = 1472;
 float AILERON_TRIM = 1472;
 float RUDDER_TRIM = 1381;
 
+float radio_T = 0.030f;
 float light_T = 0.300f;
 
 // COMMUNICATION VARIABLES
@@ -264,7 +265,7 @@ int main(void)
 		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_0);
 	}
 
-	if(ms - last_transmission >= 30){
+	if(ms - last_transmission >= 1000.0f * radio_T){
 
 	    memcpy(tx_buffer + 2, &p, sizeof(p));
 	    HAL_UART_Transmit(&huart2, tx_buffer, sizeof(tx_buffer), 100);
@@ -1043,6 +1044,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 					break;
 				case 12:
 					RUDDER_TRIM = param_value;
+					break;
+				case 254:
+					radio_T = param_value;
 					break;
 				case 255:
 					light_T = param_value;
