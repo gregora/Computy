@@ -35,4 +35,4 @@
 | 253 | altitude50    | Altitude of the fifty-th point                   |
 | 254 | radio_T       | Time between telemetry transmissions in seconds  |
 | 255 | light_T       | Light on/off time in seconds                     |
-
+| 256 | completion_r  | At what distance in meters is a waypoint reached |

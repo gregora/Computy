@@ -79,6 +79,7 @@ float mission[50 * 3]; // max 50 missions with latitude, longitude and altitude
 
 float radio_T = 0.030f;
 float light_T = 1.000f;
+float completion_r = 30.0f;
 
 // COMMUNICATION VARIABLES
 
@@ -372,8 +373,8 @@ int main(void)
 
 			float distance_to_target = sqrt(delta_x*delta_x + delta_y*delta_y);
 
-			// Objective complete if the aircraft is within 30m
-			if (distance_to_target < 30.0f){
+			// Objective complete if the aircraft is within completion_r meters
+			if (distance_to_target < completion_r){
 				target_index = (target_index + 1) % mission_n;
 			}
 
@@ -1065,6 +1066,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 					break;
 				case 255:
 					light_T = param_value;
+					break;
+				case 256:
+					completion_r = param_value;
 					break;
 			}
 

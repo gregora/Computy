@@ -28,7 +28,8 @@ param2id = {
     "rudder_trim": 12,
     "mission_n": 100,
     "radio_t": 254,
-    "light_t": 255
+    "light_t": 255,
+    "completion_r": 256
 }
 
 
