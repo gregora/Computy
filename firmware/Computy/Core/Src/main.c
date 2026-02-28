@@ -25,7 +25,6 @@
 #include "bno055.h"
 #include "quaternion.h"
 #include "ibus.h"
-#include "coordinates.h"
 #define ARM_MATH_CM3
 #include "arm_math.h"
 #include "kalman.h"
@@ -79,7 +78,7 @@ uint16_t mission_n = 0;
 float mission[50 * 3]; // max 50 missions with latitude, longitude and altitude
 
 float radio_T = 0.030f;
-float light_T = 0.300f;
+float light_T = 1.000f;
 
 // COMMUNICATION VARIABLES
 
@@ -104,6 +103,7 @@ int16_t target_index = 0;
 
 float target_lat = 0;
 float target_long = 0;
+float target_alt = 0;
 
 
 // KALMAN FILTER
@@ -356,26 +356,34 @@ int main(void)
 
 		//kalman_update(gps.latitude, gps.longitude, gps.altitude);
 
-		target_lat = latitudes[target_index];
-		target_long = longitudes[target_index];
+		if (mission_n == 0){
+			bearing = 0;
+		}else {
 
-		// Calculate distance from target position
-		float delta_x = (target_lat  - p.latitude)  / 360.0f * EARTH_CIRCUMFERENCE;
-		float delta_y = (target_long - p.longitude) / 360.0f * EARTH_CIRCUMFERENCE * cos(target_lat / 180.0f * 3.1415);
+			target_index = target_index % mission_n;
 
-		float distance_to_target = sqrt(delta_x*delta_x + delta_y*delta_y);
+			target_lat  = mission[3*target_index + 0];
+			target_long = mission[3*target_index + 1];
+			target_alt  = mission[3*target_index + 2];
 
-		// Objective complete if the aircraft is within 30m
-		if (distance_to_target < 30.0f){
-			target_index = (target_index + 1) % num_points;
+			// Calculate distance from target position
+			float delta_x = (target_lat  - p.latitude)  / 360.0f * EARTH_CIRCUMFERENCE;
+			float delta_y = (target_long - p.longitude) / 360.0f * EARTH_CIRCUMFERENCE * cos(target_lat / 180.0f * 3.1415);
+
+			float distance_to_target = sqrt(delta_x*delta_x + delta_y*delta_y);
+
+			// Objective complete if the aircraft is within 30m
+			if (distance_to_target < 30.0f){
+				target_index = (target_index + 1) % mission_n;
+			}
+
+			// Calculate bearing from target position and current position
+			bearing = RAD2DEG * atan2(
+					sin((target_long - p.longitude) / RAD2DEG) * cos(target_lat / RAD2DEG),
+					cos(p.latitude / RAD2DEG) * sin(target_lat / RAD2DEG) - sin(p.latitude / RAD2DEG) * cos(target_lat / RAD2DEG) * cos((target_long - p.longitude)/RAD2DEG)
+			);
 		}
-
-		// Calculate bearing from target position and current position
-		bearing = RAD2DEG * atan2(
-				sin((target_long - p.longitude) / RAD2DEG) * cos(target_lat / RAD2DEG),
-				cos(p.latitude / RAD2DEG) * sin(target_lat / RAD2DEG) - sin(p.latitude / RAD2DEG) * cos(target_lat / RAD2DEG) * cos((target_long - p.longitude)/RAD2DEG)
-		);
-    }
+	}
 
     // Parse iBus
 	parse_ibus(rx_buff_ibus, channels);
@@ -1050,6 +1058,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 					break;
 				case 100:
 					mission_n = (uint16_t) param_value;
+					target_index = 0;
 					break;
 				case 254:
 					radio_T = param_value;
