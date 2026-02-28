@@ -455,6 +455,14 @@ while running:
         map_scale_lat = 40075 / 360  # full width at 1 km
         map_scale_long = 40075 / 360 * np.cos(p.latitude * 3.1415 / 180) # full height at 1 km
 
+        # render mission path
+        pygame.draw.lines(screen, (15, 57, 184), True, [
+            (
+                int(10 + 370/2 + 370 * (l['longitude'] - p.longitude) * map_scale_long),
+                int(height / 2 - 30 + 370/2 - 370 * (l['latitude'] - p.latitude) * map_scale_lat)
+            ) for index, l in mission_data.iterrows()
+        ], 1)
+
         # render mission waypoints
         for index, row in mission_data.iterrows():
             if abs(row['latitude']) < 180 and abs(row['longitude']) < 180:
@@ -463,8 +471,9 @@ while running:
                     int(height / 2 - 30 + 370/2 - 370 * (row['latitude'] - p.latitude) * map_scale_lat)
                 )
 
-                pygame.draw.circle(screen, (255, 0, 0), tup, 5)
+                pygame.draw.circle(screen, (58, 103, 240), tup, 5)
 
+        
 
         path_positions = []
         for l in line:

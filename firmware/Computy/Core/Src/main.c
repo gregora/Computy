@@ -75,6 +75,9 @@ float ELEVATOR_TRIM = 1472;
 float AILERON_TRIM = 1472;
 float RUDDER_TRIM = 1381;
 
+uint16_t mission_n = 0;
+float mission[50 * 3]; // max 50 missions with latitude, longitude and altitude
+
 float radio_T = 0.030f;
 float light_T = 0.300f;
 
@@ -1045,12 +1048,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 				case 12:
 					RUDDER_TRIM = param_value;
 					break;
+				case 100:
+					mission_n = (uint16_t) param_value;
+					break;
 				case 254:
 					radio_T = param_value;
 					break;
 				case 255:
 					light_T = param_value;
 					break;
+			}
+
+			// mission positions
+			if (param_index >= 101 && param_index <= 253){
+				mission[param_index - 101] = param_value;
 			}
 
 
