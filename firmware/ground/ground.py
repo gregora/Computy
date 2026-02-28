@@ -398,7 +398,7 @@ while running:
     ### Mission ###
     mission_y = 330
     for index, row in mission_data.iterrows():
-        text = font_small.render(f"{row['latitude']}°, {row['longitude']}°, {row['altitude']}m", True, (255, 255, 255))
+        text = font_small.render(f"{row['latitude']:.4f}°, {row['longitude']:.4f}°, {row['altitude']:.0f}m", True, (255, 255, 255))
         screen.blit(text, (width - 350, mission_y))
         mission_y += 18
 
