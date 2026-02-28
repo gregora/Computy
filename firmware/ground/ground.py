@@ -26,6 +26,7 @@ param2id = {
     "elevator_trim": 10,
     "aileron_trim": 11,
     "rudder_trim": 12,
+    "mission_n": 100,
     "radio_t": 254,
     "light_t": 255
 }
@@ -34,6 +35,8 @@ param2id = {
 # open file dialog with tkinter
 root = Tk()
 root.withdraw()
+
+# open config file dialog
 config_file = filedialog.askopenfilename(filetypes=[("Configuration files", "*.cfg")], initialdir="configs/")
 
 config = configparser.ConfigParser()
@@ -47,6 +50,15 @@ for param in config["Parameters"]:
 print("Loaded parameters:")
 for param in params:
     print(param, params[param])
+
+# open mission file dialog
+mission_file = filedialog.askopenfilename(filetypes=[("Mission files", "*.csv")], initialdir="missions/")
+
+mission_data = pd.read_csv(mission_file)
+
+if len(mission_data) > 50:
+    print("Warning: Mission has more than 50 waypoints, only the first 50 will be uploaded to the drone")
+    mission_data = mission_data.iloc[:50]
 
 packet_start = b'ab'
 
@@ -364,7 +376,7 @@ while running:
     ### Parameters ###
 
     # write parameters on the right side
-    param_y = 400
+    param_y = 300
     for param in params:
         # smaller font
         font_small = pygame.font.Font(None, 15)
@@ -377,6 +389,20 @@ while running:
     pygame.draw.rect(screen, (20, 20, 20), upload_button)
     text = font.render("Upload", True, (255, 255, 255))
     text_rect = text.get_rect(center=upload_button.center)
+    screen.blit(text, text_rect)
+
+    ### Mission ###
+    mission_y = 300
+    for index, row in mission_data.iterrows():
+        text = font_small.render(f"{row['latitude']}°, {row['longitude']}°, {row['altitude']}m", True, (255, 255, 255))
+        screen.blit(text, (width - 350, mission_y))
+        mission_y += 18
+
+    # upload mission button
+    upload_mission_button = pygame.Rect(width - 350, mission_y, 100, 30)
+    pygame.draw.rect(screen, (20, 20, 20), upload_mission_button)
+    text = font.render("Upload Mission", True, (255, 255, 255))
+    text_rect = text.get_rect(center=upload_mission_button.center)
     screen.blit(text, text_rect)
 
 
@@ -428,6 +454,17 @@ while running:
         
         map_scale_lat = 40075 / 360  # full width at 1 km
         map_scale_long = 40075 / 360 * np.cos(p.latitude * 3.1415 / 180) # full height at 1 km
+
+        # render mission waypoints
+        for index, row in mission_data.iterrows():
+            if abs(row['latitude']) < 180 and abs(row['longitude']) < 180:
+                tup = (
+                    int(10 + 370/2 + 370 * (row['longitude'] - p.longitude) * map_scale_long),
+                    int(height / 2 - 30 + 370/2 - 370 * (row['latitude'] - p.latitude) * map_scale_lat)
+                )
+
+                pygame.draw.circle(screen, (255, 0, 0), tup, 5)
+
 
         path_positions = []
         for l in line:
@@ -504,6 +541,17 @@ while running:
                     send_parameter(param2id[param], params[param], ser)
                     time.sleep(0.1)  # add a small delay between parameter uploads to avoid overwhelming the serial connection
 
+            if upload_mission_button.collidepoint(event.pos):
+                send_parameter(param2id["mission_n"], len(mission_data), ser)
+                time.sleep(0.1)
+                for i, (index, row) in enumerate(mission_data.iterrows()):
+                    idx = 101 + i * 3
+                    send_parameter(idx, row['latitude'], ser)
+                    time.sleep(0.1)
+                    send_parameter(idx + 1, row['longitude'], ser)
+                    time.sleep(0.1)
+                    send_parameter(idx + 2, row['altitude'], ser)
+                    time.sleep(0.1)
         # check if space is pressed
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:

@@ -25,6 +25,14 @@
 |  10 | ELEVATOR_TRIM | Elevator servo trimmed position                  |
 |  11 | AILERON_TRIM  | Aileron servos trimmed position                  |
 |  12 | RUDDER_TRIM   | Rudder servo trimmed position                    |
+| 100 | mission_n     | Number of mission points (n <= 50)               |
+| 101 | latitude_1    | Latitude of the first point                      |
+| 102 | longitude_1   | Longitude of the first point                     |
+| 103 | altitude1     | Altitude of the first point                      |
+| ... |     ...       |                      ...                         |
+| 251 | latitude50    | Latitude of the fifty-th point                   |
+| 252 | longitude50   | Longitude of the fifty-th point                  |
+| 253 | altitude50    | Altitude of the fifty-th point                   |
 | 254 | radio_T       | Time between telemetry transmissions in seconds  |
 | 255 | light_T       | Light on/off time in seconds                     |
 
