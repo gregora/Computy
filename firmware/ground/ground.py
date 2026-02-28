@@ -376,7 +376,7 @@ while running:
     ### Parameters ###
 
     # write parameters on the right side
-    param_y = 300
+    param_y = 330
     for param in params:
         # smaller font
         font_small = pygame.font.Font(None, 15)
@@ -385,25 +385,33 @@ while running:
         param_y += 18
 
     # upload button
-    upload_button = pygame.Rect(width - 150, param_y, 100, 30)
+    upload_button = pygame.Rect(width - 150, param_y, 130, 30)
     pygame.draw.rect(screen, (20, 20, 20), upload_button)
-    text = font.render("Upload", True, (255, 255, 255))
+    text = font.render("Upload Params", True, (255, 255, 255))
     text_rect = text.get_rect(center=upload_button.center)
     screen.blit(text, text_rect)
 
+    # file name
+    text = font_small.render(config_file.split("/")[-1], True, (255, 255, 255))
+    screen.blit(text, (width - 150, param_y + 35))
+
     ### Mission ###
-    mission_y = 300
+    mission_y = 330
     for index, row in mission_data.iterrows():
         text = font_small.render(f"{row['latitude']}°, {row['longitude']}°, {row['altitude']}m", True, (255, 255, 255))
         screen.blit(text, (width - 350, mission_y))
         mission_y += 18
 
     # upload mission button
-    upload_mission_button = pygame.Rect(width - 350, mission_y, 100, 30)
+    upload_mission_button = pygame.Rect(width - 350, mission_y, 130, 30)
     pygame.draw.rect(screen, (20, 20, 20), upload_mission_button)
     text = font.render("Upload Mission", True, (255, 255, 255))
     text_rect = text.get_rect(center=upload_mission_button.center)
     screen.blit(text, text_rect)
+
+    # file name
+    text = font_small.render(mission_file.split("/")[-1], True, (255, 255, 255))
+    screen.blit(text, (width - 350, mission_y + 35))
 
 
     ### Artificial horizon ###
