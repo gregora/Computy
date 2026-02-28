@@ -23,6 +23,9 @@ param2id = {
     "kp_pitch": 3,
     "ki_pitch": 4,
     "kd_pitch": 5,
+    "elevator_trim": 10,
+    "aileron_trim": 11,
+    "rudder_trim": 12,
     "light_t": 255
 }
 

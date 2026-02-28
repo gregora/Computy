@@ -71,6 +71,10 @@ float kP_pitch = 0.0200f;
 float kI_pitch = 0.0f;
 float kD_pitch = 0.0040f;
 
+float ELEVATOR_TRIM = 1472;
+float AILERON_TRIM = 1472;
+float RUDDER_TRIM = 1381;
+
 float light_T = 0.300f;
 
 // COMMUNICATION VARIABLES
@@ -1030,6 +1034,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 					break;
 				case 5:
 					kD_pitch = param_value;
+					break;
+				case 10:
+					ELEVATOR_TRIM = param_value;
+					break;
+				case 11:
+					AILERON_TRIM = param_value;
+					break;
+				case 12:
+					RUDDER_TRIM = param_value;
 					break;
 				case 255:
 					light_T = param_value;

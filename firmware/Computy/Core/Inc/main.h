@@ -48,9 +48,6 @@ extern "C" {
 /* USER CODE BEGIN EM */
 #define RAD2DEG  180.0f / 3.1415f
 
-#define ELEVATOR_TRIM (int16_t)1472
-#define AILERON_TRIM  (int16_t)1472
-#define RUDDER_TRIM   (int16_t)1381
 /* USER CODE END EM */
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
